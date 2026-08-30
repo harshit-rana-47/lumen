@@ -104,7 +104,10 @@ CREATE POLICY audit_select_own ON public.audit_logs
   FOR SELECT TO authenticated
   USING (user_id = auth.uid());
 
--- RPC security: restrict match_* to authenticated callers and enforce user_uuid = auth.uid()
+-- RPC security: SECURITY DEFINER with tenancy gate.
+-- service_role (workers/API today) may query by explicit user_uuid.
+-- authenticated clients may only query their own user_uuid.
+-- (Further hardened in 20260830153000_memory_versioning_and_match_rpc_fix.sql)
 CREATE OR REPLACE FUNCTION public.match_journals(
   query_embedding vector(384),
   user_uuid uuid,
@@ -113,16 +116,20 @@ CREATE OR REPLACE FUNCTION public.match_journals(
 RETURNS TABLE(id uuid, similarity float)
 LANGUAGE sql
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT
     journal_entries.id,
     1 - (journal_entries.embedding <=> query_embedding) AS similarity
   FROM public.journal_entries
   WHERE journal_entries.user_id = user_uuid
-    AND journal_entries.user_id = auth.uid()
     AND journal_entries.deleted_at IS NULL
     AND journal_entries.embedding IS NOT NULL
+    AND (
+      auth.role() = 'service_role'
+      OR journal_entries.user_id = auth.uid()
+    )
   ORDER BY journal_entries.embedding <=> query_embedding
   LIMIT match_count;
 $$;
@@ -135,15 +142,19 @@ CREATE OR REPLACE FUNCTION public.match_memories(
 RETURNS TABLE(id uuid, similarity float)
 LANGUAGE sql
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT
     memory_items.id,
     1 - (memory_items.embedding <=> query_embedding) AS similarity
   FROM public.memory_items
   WHERE memory_items.user_id = user_uuid
-    AND memory_items.user_id = auth.uid()
     AND memory_items.embedding IS NOT NULL
+    AND (
+      auth.role() = 'service_role'
+      OR memory_items.user_id = auth.uid()
+    )
   ORDER BY memory_items.embedding <=> query_embedding
   LIMIT match_count;
 $$;
