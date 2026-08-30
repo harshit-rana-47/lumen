@@ -1,16 +1,12 @@
-import { Worker, type Job } from "bullmq";
 import { embedText } from "../config/embeddings";
 import { groqClient, WORKER_MODEL } from "../config/groq";
-import { runQuery } from "../config/neo4j";
 import { supabaseAdmin } from "../config/supabase";
 import { encrypt } from "../lib/encrypt";
-import { queueNames } from "../lib/queue";
 import { getUserDEK } from "../lib/userDEK";
 import {
   getDecryptedJournalBody,
   type JournalJobData,
-  stripJsonMarkdownFences,
-  workerOptions
+  stripJsonMarkdownFences
 } from "./worker.shared";
 
 const MEMORY_CATEGORIES = [
@@ -22,6 +18,9 @@ const MEMORY_CATEGORIES = [
   "preference",
   "habit"
 ] as const;
+
+/** AI inferences below this confidence are dropped (confidence gating). */
+const MIN_AI_CONFIDENCE = 0.55;
 
 type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
 
@@ -35,6 +34,16 @@ type ExtractedFact = {
 type MemorySettingsRow = {
   category: string;
   enabled: boolean | null;
+};
+
+type ActiveMemoryRow = {
+  id: string;
+  user_edited: boolean | null;
+  confidence: number | null;
+  version: number | null;
+  value_encrypted: string;
+  iv: string;
+  auth_tag: string;
 };
 
 function isMemoryCategory(value: string): value is MemoryCategory {
@@ -117,12 +126,57 @@ async function extractFacts(body: string): Promise<ExtractedFact[]> {
   return parseFacts(raw);
 }
 
+/**
+ * Upsert / supersede AI memory into Postgres only (Neo4j removed).
+ * - Skip when confidence < MIN_AI_CONFIDENCE
+ * - Never overwrite user_edited active memories (user corrections win)
+ * - Otherwise supersede prior active AI row and insert a new active version
+ */
 async function upsertFact(userId: string, entryId: string, dek: string, fact: ExtractedFact): Promise<void> {
+  if (fact.confidence < MIN_AI_CONFIDENCE) {
+    return;
+  }
+
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("memory_items")
+    .select("id,user_edited,confidence,version,value_encrypted,iv,auth_tag")
+    .eq("user_id", userId)
+    .eq("category", fact.category)
+    .eq("key", fact.key)
+    .eq("status", "active")
+    .maybeSingle<ActiveMemoryRow>();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  if (existing?.user_edited) {
+    return;
+  }
+
   const encryptedValue = encrypt(fact.value, dek);
   const embedding = await embedText(fact.value);
+  const nextVersion = (existing?.version ?? 0) + 1;
 
-  const { error } = await supabaseAdmin.from("memory_items").upsert(
-    {
+  // Clear active unique slot before inserting the successor version.
+  if (existing) {
+    const { error: clearError } = await supabaseAdmin
+      .from("memory_items")
+      .update({
+        status: "superseded",
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", existing.id)
+      .eq("user_id", userId);
+
+    if (clearError) {
+      throw clearError;
+    }
+  }
+
+  const { data: inserted, error: insertError } = await supabaseAdmin
+    .from("memory_items")
+    .insert({
       user_id: userId,
       category: fact.category,
       key: fact.key,
@@ -132,40 +186,32 @@ async function upsertFact(userId: string, entryId: string, dek: string, fact: Ex
       confidence: fact.confidence,
       source_entry_id: entryId,
       embedding,
+      status: "active",
+      version: nextVersion,
+      user_edited: false,
       updated_at: new Date().toISOString()
-    },
-    {
-      onConflict: "user_id,category,key"
-    }
-  );
+    })
+    .select("id")
+    .single<{ id: string }>();
 
-  if (error) {
-    throw error;
+  if (insertError) {
+    throw insertError;
   }
 
-  await runQuery(
-    `
-    MERGE (u:User {id: $userId})
-    MERGE (m:Memory {userId: $userId, category: $category, key: $key})
-    SET m.valueEncrypted = $valueEncrypted,
-        m.iv = $iv,
-        m.authTag = $authTag,
-        m.confidence = $confidence,
-        m.sourceEntryId = $entryId,
-        m.updatedAt = datetime()
-    MERGE (u)-[:HAS_MEMORY]->(m)
-    `,
-    {
-      userId,
-      category: fact.category,
-      key: fact.key,
-      valueEncrypted: encryptedValue.ciphertext,
-      iv: encryptedValue.iv,
-      authTag: encryptedValue.authTag,
-      confidence: fact.confidence,
-      entryId
+  if (existing) {
+    const { error: linkError } = await supabaseAdmin
+      .from("memory_items")
+      .update({
+        superseded_by: inserted.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", existing.id)
+      .eq("user_id", userId);
+
+    if (linkError) {
+      throw linkError;
     }
-  );
+  }
 }
 
 export async function processMemoryJob(data: JournalJobData): Promise<void> {
@@ -196,9 +242,3 @@ export async function processMemoryJob(data: JournalJobData): Promise<void> {
     throw error;
   }
 }
-
-export const memoryWorker = new Worker<JournalJobData>(
-  queueNames.memory,
-  async (job: Job<JournalJobData>) => processMemoryJob(job.data),
-  workerOptions
-);

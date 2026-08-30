@@ -1,11 +1,11 @@
 import { createServer } from "node:http";
+import pg from "pg";
 import { createApp } from "./app";
 import { embedText } from "./config/embeddings";
 import { env } from "./config/env";
 import { groqClient } from "./config/groq";
 import { logger } from "./config/logger";
-import { runQuery } from "./config/neo4j";
-import { redis } from "./config/redis";
+import { getPgBoss } from "./jobs/pgboss";
 import { supabaseAdmin } from "./config/supabase";
 
 async function checkSupabase(): Promise<void> {
@@ -19,12 +19,17 @@ async function checkSupabase(): Promise<void> {
   }
 }
 
-async function checkRedis(): Promise<void> {
-  await redis.ping();
-}
-
-async function checkNeo4j(): Promise<void> {
-  await runQuery("RETURN 1 AS ok");
+async function checkPostgres(): Promise<void> {
+  const client = new pg.Client({
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }
+  });
+  await client.connect();
+  try {
+    await client.query("SELECT 1");
+  } finally {
+    await client.end();
+  }
 }
 
 async function checkGroq(): Promise<void> {
@@ -36,13 +41,8 @@ async function checkEmbeddings(): Promise<void> {
 }
 
 async function runStartupHealthCheck(): Promise<void> {
-  await Promise.all([
-    checkSupabase(),
-    checkRedis(),
-    checkNeo4j(),
-    checkGroq(),
-    checkEmbeddings()
-  ]);
+  await Promise.all([checkSupabase(), checkPostgres(), checkGroq(), checkEmbeddings()]);
+  await getPgBoss();
 }
 
 async function startServer(): Promise<void> {

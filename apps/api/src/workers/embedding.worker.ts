@@ -1,8 +1,7 @@
-import { Worker, type Job } from "bullmq";
 import { embedText } from "../config/embeddings";
 import { supabaseAdmin } from "../config/supabase";
-import { memoryQueue, queueNames } from "../lib/queue";
-import { getDecryptedJournalBody, type JournalJobData, workerOptions } from "./worker.shared";
+import { enqueueMemoryJob } from "../lib/queue";
+import { getDecryptedJournalBody, type JournalJobData } from "./worker.shared";
 
 export async function processEmbeddingJob(data: JournalJobData): Promise<void> {
   const body = await getDecryptedJournalBody(data);
@@ -23,14 +22,8 @@ export async function processEmbeddingJob(data: JournalJobData): Promise<void> {
     throw error;
   }
 
-  await memoryQueue.add("embedding.done", {
+  await enqueueMemoryJob({
     userId: data.userId,
     entryId: data.entryId
   });
 }
-
-export const embeddingWorker = new Worker<JournalJobData>(
-  queueNames.embedding,
-  async (job: Job<JournalJobData>) => processEmbeddingJob(job.data),
-  workerOptions
-);

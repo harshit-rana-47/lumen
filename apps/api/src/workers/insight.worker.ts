@@ -1,10 +1,8 @@
-import { Worker, type Job } from "bullmq";
 import { groqClient, WORKER_MODEL } from "../config/groq";
 import { supabaseAdmin } from "../config/supabase";
 import { encrypt } from "../lib/encrypt";
-import { insightQueue, queueNames } from "../lib/queue";
 import { getUserDEK } from "../lib/userDEK";
-import { stripJsonMarkdownFences, workerOptions } from "./worker.shared";
+import { stripJsonMarkdownFences } from "./worker.shared";
 
 type InsightJobData = {
   userId?: string;
@@ -174,29 +172,3 @@ export async function processInsightJob(data: InsightJobData = {}): Promise<void
     }
   }
 }
-
-export async function scheduleNightlyInsights(): Promise<void> {
-  await insightQueue.upsertJobScheduler(
-    "nightly-insights-2am",
-    {
-      pattern: "0 2 * * *"
-    },
-    {
-      name: "nightly-insights",
-      data: {},
-      opts: {
-        attempts: 3,
-        backoff: {
-          type: "exponential",
-          delay: 5_000
-        }
-      }
-    }
-  );
-}
-
-export const insightWorker = new Worker<InsightJobData>(
-  queueNames.insight,
-  async (job: Job<InsightJobData>) => processInsightJob(job.data ?? {}),
-  workerOptions
-);

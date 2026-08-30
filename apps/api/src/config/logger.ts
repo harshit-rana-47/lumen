@@ -7,8 +7,7 @@ export const logger = pino({
       paths: [
         "SUPABASE_SERVICE_ROLE_KEY",
         "SUPABASE_ANON_KEY",
-        "REDIS_URL",
-        "NEO4J_PASSWORD",
+        "DATABASE_URL",
         "GROQ_API_KEY",
         "MASTER_ENCRYPTION_KEY"
       ],

@@ -1,12 +1,6 @@
-import { type WorkerOptions } from "bullmq";
 import { supabaseAdmin } from "../config/supabase";
-import { bullMQConnection } from "../lib/queue";
 import { getUserDEK } from "../lib/userDEK";
 import { decryptRequiredText } from "../modules/journal/journal.encrypt";
-
-export const workerOptions: WorkerOptions = {
-  connection: bullMQConnection
-};
 
 export type JournalJobData = {
   userId: string;

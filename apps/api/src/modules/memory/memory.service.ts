@@ -1,5 +1,4 @@
 import { embedText } from "../../config/embeddings";
-import { runQuery } from "../../config/neo4j";
 import { supabaseAdmin } from "../../config/supabase";
 import { decrypt, encrypt } from "../../lib/encrypt";
 import { getUserDEK } from "../../lib/userDEK";
@@ -24,6 +23,8 @@ type MemoryRow = {
   source_entry_id: string | null;
   user_edited: boolean | null;
   last_confirmed: string | null;
+  version: number | null;
+  status: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,6 +39,7 @@ type MemoryItem = {
   sourceEntryId: string | null;
   userEdited: boolean;
   lastConfirmed: string | null;
+  version: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -57,7 +59,7 @@ type GraphEdge = {
 };
 
 const MEMORY_SELECT =
-  "id,user_id,category,key,value_encrypted,iv,auth_tag,confidence,importance,source_entry_id,user_edited,last_confirmed,created_at,updated_at";
+  "id,user_id,category,key,value_encrypted,iv,auth_tag,confidence,importance,source_entry_id,user_edited,last_confirmed,version,status,created_at,updated_at";
 
 const MEMORY_CATEGORIES: MemoryCategory[] = [
   "identity",
@@ -87,37 +89,10 @@ function decryptMemory(row: MemoryRow, dek: string): MemoryItem {
     sourceEntryId: row.source_entry_id,
     userEdited: row.user_edited ?? false,
     lastConfirmed: row.last_confirmed,
+    version: row.version ?? 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
-}
-
-async function syncMemoryNode(userId: string, memory: MemoryItem, encrypted: { ciphertext: string; iv: string; authTag: string }) {
-  await runQuery(
-    `
-    MERGE (u:User {id: $userId})
-    MERGE (m:Memory {id: $id})
-    SET m.userId = $userId,
-        m.label = $label,
-        m.category = $category,
-        m.importance = $importance,
-        m.valueEncrypted = $valueEncrypted,
-        m.iv = $iv,
-        m.authTag = $authTag,
-        m.updatedAt = datetime()
-    MERGE (u)-[:HAS_MEMORY]->(m)
-    `,
-    {
-      userId,
-      id: memory.id,
-      label: memory.key,
-      category: memory.category,
-      importance: memory.importance,
-      valueEncrypted: encrypted.ciphertext,
-      iv: encrypted.iv,
-      authTag: encrypted.authTag
-    }
-  );
 }
 
 export class MemoryService {
@@ -130,6 +105,7 @@ export class MemoryService {
       .from("memory_items")
       .select(MEMORY_SELECT, { count: "exact" })
       .eq("user_id", userId)
+      .eq("status", "active")
       .order("updated_at", { ascending: false })
       .range(from, to);
 
@@ -169,6 +145,8 @@ export class MemoryService {
         importance: input.importance ?? 5,
         embedding,
         user_edited: true,
+        status: "active",
+        version: 1,
         last_confirmed: new Date().toISOString()
       })
       .select(MEMORY_SELECT)
@@ -178,10 +156,7 @@ export class MemoryService {
       throw error;
     }
 
-    const memory = decryptMemory(data, dek);
-    await syncMemoryNode(userId, memory, encrypted);
-
-    return memory;
+    return decryptMemory(data, dek);
   }
 
   async update(userId: string, id: string, input: UpdateMemoryInput): Promise<MemoryItem> {
@@ -190,10 +165,9 @@ export class MemoryService {
       user_edited: true,
       updated_at: new Date().toISOString()
     };
-    let encrypted: { ciphertext: string; iv: string; authTag: string } | undefined;
 
     if (input.value) {
-      encrypted = encrypt(input.value, dek);
+      const encrypted = encrypt(input.value, dek);
       updatePayload.value_encrypted = encrypted.ciphertext;
       updatePayload.iv = encrypted.iv;
       updatePayload.auth_tag = encrypted.authTag;
@@ -213,6 +187,7 @@ export class MemoryService {
       .update(updatePayload)
       .eq("id", id)
       .eq("user_id", userId)
+      .eq("status", "active")
       .select(MEMORY_SELECT)
       .single<MemoryRow>();
 
@@ -220,18 +195,7 @@ export class MemoryService {
       throw error;
     }
 
-    const memory = decryptMemory(data, dek);
-    await syncMemoryNode(
-      userId,
-      memory,
-      encrypted ?? {
-        ciphertext: data.value_encrypted,
-        iv: data.iv,
-        authTag: data.auth_tag
-      }
-    );
-
-    return memory;
+    return decryptMemory(data, dek);
   }
 
   async delete(userId: string, id: string): Promise<{ id: string; deleted: true }> {
@@ -244,8 +208,6 @@ export class MemoryService {
     if (error) {
       throw error;
     }
-
-    await runQuery("MATCH (m:Memory {id: $id, userId: $userId}) DETACH DELETE m", { id, userId });
 
     return { id, deleted: true };
   }
@@ -260,6 +222,7 @@ export class MemoryService {
       })
       .eq("id", id)
       .eq("user_id", userId)
+      .eq("status", "active")
       .select(MEMORY_SELECT)
       .single<MemoryRow>();
 
@@ -270,15 +233,22 @@ export class MemoryService {
     return decryptMemory(data, await getUserDEK(userId));
   }
 
+  /**
+   * Lightweight relationship view derived from Postgres memory_items.
+   * Replaces Neo4j graph sync (removed in Phase 1.5).
+   */
   async graph(userId: string): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
-    const result = await runQuery(
-      `
-      MATCH (u:User {id: $userId})-[r:HAS_MEMORY]->(m:Memory)
-      RETURN m.id AS id, m.label AS label, m.category AS category, m.importance AS importance, type(r) AS relType
-      ORDER BY m.category, m.label
-      `,
-      { userId }
-    );
+    const { data, error } = await supabaseAdmin
+      .from("memory_items")
+      .select("id,category,key,importance")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("category", { ascending: true })
+      .returns<Array<{ id: string; category: string; key: string; importance: number | null }>>();
+
+    if (error) {
+      throw error;
+    }
 
     const userNode: GraphNode = {
       id: userId,
@@ -290,18 +260,17 @@ export class MemoryService {
     const nodes: GraphNode[] = [userNode];
     const edges: GraphEdge[] = [];
 
-    for (const record of result.records) {
-      const id = String(record.get("id"));
+    for (const row of data ?? []) {
       nodes.push({
-        id,
-        label: String(record.get("label") ?? "Memory"),
-        category: String(record.get("category") ?? "memory"),
-        importance: Number(record.get("importance") ?? 5)
+        id: row.id,
+        label: row.key,
+        category: row.category,
+        importance: row.importance ?? 5
       });
       edges.push({
         source: userId,
-        target: id,
-        type: String(record.get("relType") ?? "HAS_MEMORY"),
+        target: row.id,
+        type: "HAS_MEMORY",
         weight: 1
       });
     }

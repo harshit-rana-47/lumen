@@ -1,24 +1,24 @@
 /**
- * pg-boss worker entry (scaffold).
+ * pg-boss worker entry (active queue).
  *
- * Not started by default. When DATABASE_URL is set and cutover is approved:
  *   npm -w @lumen/api run start:pgboss
- *
- * Handlers re-use existing worker logic from `workers/*.ts`.
+ *   npm -w @lumen/api run dev:pgboss
  */
 
 import type { Job } from "pg-boss";
 import { logger } from "../config/logger";
-import { getPgBoss, isPgBossConfigured, jobNames, type JournalJobPayload } from "./pgboss";
+import {
+  ensureNightlyInsightSchedule,
+  getPgBoss,
+  jobNames,
+  type InsightJobPayload,
+  type JournalJobPayload
+} from "./pgboss";
 import { processEmbeddingJob } from "../workers/embedding.worker";
 import { processMemoryJob } from "../workers/memory.worker";
 import { processInsightJob } from "../workers/insight.worker";
 
 async function main(): Promise<void> {
-  if (!isPgBossConfigured()) {
-    throw new Error("Set DATABASE_URL before starting the pg-boss worker");
-  }
-
   const boss = await getPgBoss();
 
   await boss.work(jobNames.embed, async (job: Job) => {
@@ -30,10 +30,10 @@ async function main(): Promise<void> {
   });
 
   await boss.work(jobNames.nightlyInsights, async (job: Job) => {
-    await processInsightJob((job.data ?? {}) as { userId?: string });
+    await processInsightJob((job.data ?? {}) as InsightJobPayload);
   });
 
-  await boss.schedule(jobNames.nightlyInsights, "0 2 * * *", {});
+  await ensureNightlyInsightSchedule();
 
   logger.info({ jobs: Object.values(jobNames) }, "pg-boss workers registered");
 }

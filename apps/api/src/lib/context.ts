@@ -10,7 +10,6 @@ export type BuildContextOptions = {
   mode?: ContextMode;
   /** When mode is reflection, this entry is pinned as authoritative context. */
   pinnedEntryId?: string;
-  /** Max recent chat turns to include (used by chat service separately). */
   message?: string;
 };
 
@@ -83,6 +82,7 @@ async function getRelevantMemories(userId: string, message: string, dek: string)
     .from("memory_items")
     .select("id,category,key,value_encrypted,iv,auth_tag,importance")
     .eq("user_id", userId)
+    .eq("status", "active")
     .in("id", ids)
     .returns<MemoryRow[]>();
 
@@ -132,38 +132,75 @@ async function getPinnedEntry(userId: string, entryId: string, dek: string): Pro
   return decryptJournalRow(data, dek);
 }
 
-async function getRecentJournalSummaries(
+async function getRelevantJournalSummaries(
   userId: string,
+  message: string,
   dek: string,
   excludeId?: string
 ): Promise<string[]> {
-  let request = supabaseAdmin
-    .from("journal_entries")
-    .select("id,title_encrypted,body_encrypted,iv,auth_tag,entry_date")
-    .eq("user_id", userId)
-    .is("deleted_at", null)
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  if (excludeId) {
-    request = request.neq("id", excludeId);
-  }
-
-  const { data, error } = await request.returns<JournalSummaryRow[]>();
+  const queryEmbedding = await embedText(message);
+  const { data: matches, error } = await supabaseAdmin
+    .rpc("match_journals", {
+      query_embedding: queryEmbedding,
+      user_uuid: userId,
+      match_count: 5
+    })
+    .returns<MemoryMatch[]>();
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []).map((row) => decryptJournalRow(row, dek));
+  let ids = ((matches ?? []) as MemoryMatch[]).map((match) => match.id).filter((id) => id !== excludeId);
+
+  if (ids.length === 0) {
+    // Fallback: recent entries when embeddings are sparse
+    let request = supabaseAdmin
+      .from("journal_entries")
+      .select("id,title_encrypted,body_encrypted,iv,auth_tag,entry_date")
+      .eq("user_id", userId)
+      .is("deleted_at", null)
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (excludeId) {
+      request = request.neq("id", excludeId);
+    }
+
+    const { data, error: recentError } = await request.returns<JournalSummaryRow[]>();
+
+    if (recentError) {
+      throw recentError;
+    }
+
+    return (data ?? []).map((row) => decryptJournalRow(row, dek));
+  }
+
+  const { data: rows, error: rowsError } = await supabaseAdmin
+    .from("journal_entries")
+    .select("id,title_encrypted,body_encrypted,iv,auth_tag,entry_date")
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .in("id", ids)
+    .returns<JournalSummaryRow[]>();
+
+  if (rowsError) {
+    throw rowsError;
+  }
+
+  const byId = new Map((rows ?? []).map((row) => [row.id, row]));
+
+  return ids.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [decryptJournalRow(row, dek)] : [];
+  });
 }
 
 /**
  * Shared context assembly for General Chat and Reflect-on-this.
- * - general: semantic memories + recent journals
- * - reflection: pinned entry is authoritative; memories + other journals are supplemental
- * Goals intentionally omitted from V1 context (deferred feature).
+ * - general: semantic memories + relevant journals
+ * - reflection: pinned entry is authoritative; memories + other journals supporting
  */
 export async function buildSystemContext(
   userId: string,
@@ -178,7 +215,7 @@ export async function buildSystemContext(
     mode === "reflection" && options.pinnedEntryId
       ? getPinnedEntry(userId, options.pinnedEntryId, dek)
       : Promise.resolve(null),
-    getRecentJournalSummaries(userId, dek, options.pinnedEntryId)
+    getRelevantJournalSummaries(userId, message, dek, options.pinnedEntryId)
   ]);
 
   const lines = [
@@ -204,7 +241,7 @@ export async function buildSystemContext(
     "Relevant memories:",
     memories.length ? memories.join("\n") : "None available.",
     "",
-    mode === "reflection" ? "Other recent journal summaries:" : "Recent journal summaries:",
+    mode === "reflection" ? "Other relevant journal summaries:" : "Relevant journal summaries:",
     journals.length ? journals.join("\n") : "None available."
   );
 

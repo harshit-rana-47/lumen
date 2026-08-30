@@ -1,13 +1,13 @@
 import { Router, type Request, type Response } from "express";
+import pg from "pg";
 import { embedText } from "../../config/embeddings";
+import { env } from "../../config/env";
 import { groqClient } from "../../config/groq";
-import { runQuery } from "../../config/neo4j";
-import { redis } from "../../config/redis";
 import { supabaseAdmin } from "../../config/supabase";
 
 const router = Router();
 
-type HealthName = "supabase" | "redis" | "neo4j" | "groq" | "embeddings";
+type HealthName = "supabase" | "postgres" | "groq" | "embeddings";
 
 type HealthResult = {
   status: "ok" | "error";
@@ -39,6 +39,19 @@ async function check(name: HealthName, fn: () => Promise<void>): Promise<[Health
   }
 }
 
+async function checkPostgres(): Promise<void> {
+  const client = new pg.Client({
+    connectionString: env.DATABASE_URL,
+    ssl: env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }
+  });
+  await client.connect();
+  try {
+    await client.query("SELECT 1");
+  } finally {
+    await client.end();
+  }
+}
+
 router.get("/health", async (_request: Request, response: Response) => {
   const results = await Promise.all([
     check("supabase", async () => {
@@ -48,12 +61,7 @@ router.get("/health", async (_request: Request, response: Response) => {
         throw error;
       }
     }),
-    check("redis", async () => {
-      await redis.ping();
-    }),
-    check("neo4j", async () => {
-      await runQuery("RETURN 1 AS ok");
-    }),
+    check("postgres", checkPostgres),
     check("groq", async () => {
       await groqClient.models.list();
     }),

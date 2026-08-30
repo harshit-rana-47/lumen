@@ -1,7 +1,6 @@
 import { WORKER_MODEL, groqClient } from "../../config/groq";
-import { redis } from "../../config/redis";
 import { supabaseAdmin } from "../../config/supabase";
-import { decrypt, encrypt, type EncryptedPayload } from "../../lib/encrypt";
+import { decrypt } from "../../lib/encrypt";
 import { getUserDEK } from "../../lib/userDEK";
 import type { InsightsListQuery, MoodTrendQuery, ReportQuery } from "./insights.schema";
 
@@ -54,10 +53,6 @@ function decryptInsight(row: InsightRow, dek: string) {
     seenAt: row.seen_at,
     createdAt: row.created_at
   };
-}
-
-function cacheKey(userId: string, period: string): string {
-  return `lumen:insights:report:${userId}:${period}`;
 }
 
 export class InsightsService {
@@ -132,19 +127,6 @@ export class InsightsService {
   }
 
   async report(userId: string, query: ReportQuery) {
-    const dek = await getUserDEK(userId);
-    const key = cacheKey(userId, query.period);
-    const cached = await redis.get(key);
-
-    if (typeof cached === "string") {
-      const encrypted = JSON.parse(cached) as EncryptedPayload;
-      return {
-        period: query.period,
-        report: decrypt(encrypted, dek),
-        cached: true
-      };
-    }
-
     const [trend, insights] = await Promise.all([
       this.moodTrend(userId, { days: query.period === "week" ? 7 : query.period === "month" ? 30 : 90 }),
       this.list(userId, { page: 1, limit: 10 })
@@ -175,9 +157,6 @@ export class InsightsService {
     });
 
     const report = completion.choices[0]?.message.content?.trim() ?? "";
-    const encrypted = encrypt(report, dek);
-
-    await redis.set(key, JSON.stringify(encrypted), "EX", 24 * 60 * 60);
 
     return {
       period: query.period,

@@ -1,69 +1,21 @@
-import rateLimit, { type IncrementResponse, type Store } from "express-rate-limit";
-import { redis } from "../config/redis";
+import rateLimit from "express-rate-limit";
 
-type UpstashRateLimitStoreOptions = {
-  prefix: string;
-};
-
-class UpstashRateLimitStore implements Store {
-  localKeys = false;
-  prefix: string;
-
-  private windowMs = 60_000;
-
-  constructor(options: UpstashRateLimitStoreOptions) {
-    this.prefix = `lumen:rate-limit:${options.prefix}`;
-  }
-
-  init(options: { windowMs: number }): void {
-    this.windowMs = options.windowMs;
-  }
-
-  async increment(key: string): Promise<IncrementResponse> {
-    const redisKey = this.redisKey(key);
-    const totalHits = await redis.incr(redisKey);
-    let ttl = await redis.pttl(redisKey);
-
-    if (totalHits === 1 || ttl < 0) {
-      await redis.pexpire(redisKey, this.windowMs);
-      ttl = this.windowMs;
-    }
-
-    return {
-      totalHits,
-      resetTime: new Date(Date.now() + ttl)
-    };
-  }
-
-  async decrement(key: string): Promise<void> {
-    const redisKey = this.redisKey(key);
-    const totalHits = await redis.decr(redisKey);
-
-    if (totalHits <= 0) {
-      await redis.del(redisKey);
-    }
-  }
-
-  async resetKey(key: string): Promise<void> {
-    await redis.del(this.redisKey(key));
-  }
-
-  private redisKey(key: string): string {
-    return `${this.prefix}:${key}`;
-  }
-}
-
+/**
+ * In-process rate limiting (Redis removed with BullMQ in Phase 1.5).
+ * Sufficient for a single API instance; revisit if horizontally scaled.
+ */
 function createLimiter(prefix: string, limit: number, windowMs: number) {
   return rateLimit({
     windowMs,
     limit,
-    store: new UpstashRateLimitStore({ prefix }),
     standardHeaders: "draft-7",
     legacyHeaders: false,
     message: {
       success: false,
       error: "Too many requests. Please try again later."
-    }
+    },
+    // Distinct keys per limiter via prefix in keyGenerator default path + skip
+    keyGenerator: (request) => `${prefix}:${request.ip ?? "unknown"}`
   });
 }
 
