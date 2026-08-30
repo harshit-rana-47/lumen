@@ -1,6 +1,6 @@
 # PRODUCT.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-31 (Visual Rebuild plan)
 
 ## Product identity
 
@@ -35,7 +35,7 @@ Every journal entry UI must show a permanent bold **“Dear Diary,”** heading 
 
 **Today · Journal · Chat · You**
 
-- **Today** — daily presence / check-in / entry into writing  
+- **Today** — daily *presence* and re-entry into writing (**not** a generic Daily Check-In form). Planned: **Today’s Thread (Continuum)** — see `FRONTEND.md`  
 - **Journal** — list + write/edit entries  
 - **Chat** — General Chat with global context  
 - **You** — account, preferences, data controls (settings/profile)
@@ -50,27 +50,28 @@ Every journal entry UI must show a permanent bold **“Dear Diary,”** heading 
 
 **Status:** API context modes (`general` | `reflection` + `pinnedEntryId`) exist. Reflect panel + General Chat UI implemented (Slices 4–5).
 
+## Daily Check-In
+
+**Deprecated as Today’s hero.** Manual mood/energy/anxiety sliders do not leverage Lumen’s memory/AI advantage.
+
+**Recommended replacement (awaiting approval):** Today’s Thread / Continuum — one memory-informed writing invitation + path into Journal. Details and alternatives ranked in `DOCS/FRONTEND.md`.
+
+`PUT /api/v1/daily-log` may remain available but must not define the Today experience.
+
 ## V1 scope
 
-In scope: journaling, daily check-in, memory extraction/correction path, general chat, reflect-on-entry, encryption, account data purge, auth.
+In scope: journaling, **Today Continuum (pending)**, memory extraction/correction path, general chat, reflect-on-entry, encryption, account data purge, auth, **visual rebuild** of landing/auth/app.
 
 Out of scope for V1 (deferred): habits tracker, voice/image entries, collaborative workspaces, native mobile apps, multi-provider LLM picker, complex graph visualization, push notifications, separate Timeline destination, rich chat personalities/intents, realtime multi-device sync, and other V1.1/V1.2 features unless required for architecture cutover.
 
 ## Current product UI (actual codebase)
 
-V1 nav **Today · Journal · Chat · You** is live (`AppShell` / `lib/nav.ts`). Deferred destinations (`/memory`, `/insights`, `/goals`, `/timeline`) remain routable if bookmarked.
+V1 nav **Today · Journal · Chat · You** is live. Journal + Reflect + Chat functional. Landing / Auth / Today / You still visually transitional — **Visual Rebuild slices A–J** planned (`FRONTEND.md`).
 
-Journal Slice 3 + Reflect Slice 4 + General Chat Slice 5 implemented.
+## Visual + motion identity
 
-Today / You / Landing still use transitional page UIs pending later slices.
-
-## Visual + motion identity (Phase 2)
-
-Landing and authenticated app are **one product**:
-
-- Landing: cinematic / immersive / storytelling-heavy  
-- App: expressive / tactile / interaction-heavy  
+- Landing: cinematic scroll storytelling  
+- App: expressive, tactile, calm  
+- One art direction (“private lamp / living notebook”) — see `FRONTEND.md`
 
 Journal remains writing-first. Reflect is a signature spatial interaction. Dear Diary chrome is permanent bold UI-only identity.
-
-Full rules: `DOCS/FRONTEND.md`.

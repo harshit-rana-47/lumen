@@ -1,6 +1,6 @@
 # AGENT_CONTEXT — read this first
 
-Last updated: 2026-08-30 (local env stabilization — before Slice 6)
+Last updated: 2026-08-31 (Visual Rebuild plan — **awaiting approval**)
 
 ## What Lumen is
 
@@ -8,51 +8,52 @@ Private AI journaling companion. Journal-first loop: write → understand → re
 
 ## Current phase
 
-- **DONE:** … · Slice 3 Journal · Slice 4 Reflect · Slice 5 General Chat · **local `npm run dev` env fix**
-- **CURRENT:** Phase 2 — next: Today / You / Landing redesigns (Slice 6 not started)
-- Landing (minimal) vs App (expressive) — see `DOCS/FRONTEND.md`
+- **DONE (functional):** Nav shell · Journal + Dear Diary · Reflect · General Chat · local env fix  
+- **CURRENT:** Visual Rebuild — **Slice A done**; await approval for **Slice B (landing)**  
+- Preview vocabulary at `/design-system`  
+- **DO NOT** start Slice B until approved
 
-## Local development (required)
+Canonical docs: `DOCS/FRONTEND.md` (full plan), `PRODUCT.md`, `ROADMAP.md`, `DECISIONS.md`.
 
-Canonical package manager: **npm@10.8.2** (`packageManager` + root `package-lock.json`). Do **not** introduce Yarn.
+## Visual identity (proposed)
 
-1. Copy `.env.example` → root `.env` (never commit `.env`).
-2. Set a real **non-empty** `DATABASE_URL` to the Supabase Postgres URI:
-   - Supabase Dashboard → Project Settings → Database → Connection string (URI)
-   - Prefer the **Session** pooler URI for local Node (or Direct if your network allows)
-   - Paste into root `.env` only: `DATABASE_URL=postgresql://...`
-   - Empty `DATABASE_URL=` fails Zod startup validation in `apps/api/src/config/env.ts`
-3. Fill remaining required keys from `.env.example` (Supabase URL/keys, `MASTER_ENCRYPTION_KEY`, `GROQ_API_KEY`, etc.).
-4. `npm install` then `npm run dev` (Turbo: web :3000 + API :4000).
+**“Private lamp / living notebook”** — intimacy, reflection, calm warmth, depth. Not generic AI SaaS / purple glass / animation soup.
 
-Env load order (API): cwd `.env` → repo-root `.env` (resolved from `env.ts`) → `../../.env` from cwd; later files do not override existing keys.
+- Landing = cinematic scroll story  
+- App = expressive + tactile + calm  
+- One motion language (micro → tactile → structural → cinematic)  
+
+## Today / Daily Check-In
+
+**Remove** Daily Check-In as Today’s centerpiece.  
+
+**Recommend:** **Today’s Thread (Continuum)** — memory-informed invitation back into writing. Do not implement until approved.
 
 ## Two AI experiences (must stay distinct)
 
 | Surface | Intent | Context |
 |---|---|---|
-| **General Chat** (`/chat`) | Understand me | `buildSystemContext({ mode: "general" })` — **never** `pinnedEntryId` |
+| **General Chat** (`/chat`) | Understand me | `mode: "general"` — never `pinnedEntryId` |
 | **Reflect** (journal entry) | Understand this page | `mode: "reflection"` + `pinnedEntryId` |
-
-Shared: chat sessions, encrypted messages, SSE, Groq. Different: context strategy.
 
 ## Auth / nav
 
-Today · Journal · Chat · You. Journal + Chat full-bleed. Reflect is an entry action.
+Today · Journal · Chat · You. Journal + Chat full-bleed. Reflect = entry action.
+
+## Local env
+
+Single root `.env` (API + web via `next.config.mjs`). npm only. Restart after env changes.
 
 ## MUST NOT
 
-- Merge General Chat and Reflect semantic behavior  
-- Send `pinnedEntryId` from General Chat  
+- Merge General Chat and Reflect semantics  
 - Put Dear Diary into storage/AI  
-- Redesign Today / You / Landing in this slice  
+- Preserve bad UI “because it exists” while casually rewriting backends  
+- Ship animation soup / AI-slop aesthetics  
+- Start mass visual implementation before plan approval  
+- Start Slice B before explicit approval  
 - Co-author Cursor trailers on commits  
-
-## Tooling notes (2026-08-30)
-
-- Next 16 optional `@next/swc-*` platforms must appear in root `package-lock.json`; otherwise Next tries to patch the lockfile, detects Yarn from PATH when run under `apps/web` (no local lockfile), and fails (`Failed to get registry from "yarn"`). Fixed by completing lockfile SWC entries + `NEXT_IGNORE_INCORRECT_LOCKFILE=1` on web `dev`/`build`.
-- Next middleware → proxy deprecation warning is **non-blocking**; defer rename refactor (see BUG-026).
 
 ## Work on next
 
-Today redesign (then You / Landing) when instructed. Do not start until asked.
+After approval: **Slice B** (cinematic landing).

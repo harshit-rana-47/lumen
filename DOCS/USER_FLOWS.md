@@ -49,7 +49,9 @@ Empty state offers functional suggested prompts that send real messages.
 
 ## Daily check-in
 
-1. Today page sliders → `PUT /api/v1/daily-log`  
+**Deprecated as Today hero.** Planned replacement: **Today’s Thread (Continuum)** — see `FRONTEND.md`.  
+
+Legacy path (if still wired): Today sliders → `PUT /api/v1/daily-log` — do not center product on this.
 
 ## Delete account
 

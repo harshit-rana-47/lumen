@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-08-30 (Phase 2)
+Last updated: 2026-08-31 (Visual Rebuild)
 
 Do not mark future work as completed.
 
@@ -8,29 +8,43 @@ Do not mark future work as completed.
 
 ### Phase 0 / 1 / 1.5 / 1.75
 
-Baseline, cutover, verification (live DB still env-blocked).
+Baseline, cutover, verification.
+
+### Phase 2 — Functional UX foundation
+
+- Slice 1: Motion tokens/primitives scaffold  
+- Slice 2: V1 navigation shell  
+- Slice 3: Journal + Dear Diary  
+- Slice 4: Reflect panel  
+- Slice 5: General Chat  
+- Local env stabilization  
 
 ## CURRENT
 
-### Phase 2 — Frontend redesign
+### Phase 2 — Visual Rebuild (portfolio-grade)
 
-- Slice 1: Motion tokens/primitives — **done**  
-- Slice 2: V1 navigation shell + page transitions — **done**  
-- Slice 3: Journal writing surface + Dear Diary chrome — **done**  
-- Slice 4: Reflect panel + pinned entry wiring — **done**  
-- Slice 5: General Chat rebuild — **done**  
-- Next: Today / You / Landing redesigns  
+**Plan documented; awaiting approval before mass implementation.**
 
-## NEXT
-
-Phase 2 Slice 6+: Today redesign (await instruction).
+| Slice | Scope | Status |
+|---|---|---|
+| Plan | Research, art direction, design system, motion, landing storyboard, Continuum recommendation | **Approved** |
+| **A** | Art direction + design system + motion primitives | **Done** — `/design-system` |
+| **B** | Landing cinematic | **Next** (await approval) |
+| **C** | Auth experience | Pending |
+| **D** | App shell + navigation visual | Pending |
+| **E** | Today Continuum (replace Daily Check-In) | Pending |
+| **F** | Journal visual elevation | Pending |
+| **G** | Reflect choreography polish | Pending |
+| **H** | Chat visual elevation | Pending |
+| **I** | You / account | Pending |
+| **J** | Global polish + responsive + performance | Pending |
 
 ## BLOCKED
 
 | Item | Blocked by |
 |---|---|
-| Live RLS / production E2E claims | Reachable Supabase + `DATABASE_URL` |
-| Treating app as “static dashboard” | Explicitly rejected — see FRONTEND.md |
+| Starting Slice A+ implementation | Explicit approval of Visual Rebuild plan |
+| Live RLS / production E2E claims | Env/project as documented historically |
 
 ## DEFERRED
 

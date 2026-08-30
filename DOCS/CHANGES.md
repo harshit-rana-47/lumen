@@ -1,8 +1,26 @@
 # CHANGES.md
 
-Last updated: 2026-08-30 (local env stabilization)
+Last updated: 2026-08-31 (Visual Rebuild plan)
 
 Chronological implementation history. Concise.
+
+---
+
+### Visual Rebuild — Slice A (2026-08-31)
+
+- **Change:** Lock lamp/notebook tokens; ambient language; typography scale; motion tokens; core primitives; `/design-system` preview  
+- **Files:** `globals.css`, `tailwind.config.ts`, `lib/motion/*`, `lib/design/typography.ts`, `components/motion/*`, `app/design-system/page.tsx`, middleware public path, DOCS  
+- **Tests:** web typecheck PASS  
+- **Not included:** Landing (Slice B)  
+
+---
+
+### Visual Rebuild — plan only (2026-08-31)
+
+- **Change:** Research + art direction + design/motion system proposal + landing storyboard + Daily Check-In → Continuum recommendation; DOCS updated; **no UI mass implementation yet**  
+- **Why:** Functional Phase 2 is not portfolio-grade visually; need coherent direction before coding  
+- **Files:** `DOCS/FRONTEND.md`, `PRODUCT.md`, `ROADMAP.md`, `DECISIONS.md`, `AGENT_CONTEXT.md`  
+- **Status:** Awaiting approval to start Slice A
 
 ---
 

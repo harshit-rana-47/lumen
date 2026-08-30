@@ -1,6 +1,6 @@
 /**
- * Lumen motion tokens — keep in sync with CSS vars in `app/globals.css`.
- * Durations are starting points; pick by interaction weight.
+ * Lumen motion + visual tokens — keep aligned with `app/globals.css`.
+ * Art direction: private lamp / living notebook.
  */
 
 export const motionDurations = {
@@ -10,7 +10,6 @@ export const motionDurations = {
   cinematic: 0.85
 } as const;
 
-/** Milliseconds for CSS / timeouts */
 export const motionDurationsMs = {
   micro: 140,
   interaction: 240,
@@ -19,19 +18,17 @@ export const motionDurationsMs = {
 } as const;
 
 export const motionEase = {
-  /** Entrances / settles */
   standard: "cubic-bezier(0.22, 1, 0.36, 1)",
-  /** Presses / exits slightly snappier */
   emphasized: "cubic-bezier(0.2, 0, 0, 1)",
-  /** Soft landings */
-  soft: "cubic-bezier(0.33, 1, 0.68, 1)"
+  soft: "cubic-bezier(0.33, 1, 0.68, 1)",
+  press: "cubic-bezier(0.3, 0, 0.2, 1)"
 } as const;
 
-/** GSAP-friendly ease names mapped to token intent */
 export const gsapEase = {
   standard: "power3.out",
   emphasized: "power2.inOut",
-  soft: "power2.out"
+  soft: "power2.out",
+  press: "power2.inOut"
 } as const;
 
 export const motionDistance = {
@@ -39,6 +36,22 @@ export const motionDistance = {
   interaction: 8,
   transition: 16,
   cinematic: 32
+} as const;
+
+/** Stagger defaults (seconds) for list / message choreography */
+export const motionStagger = {
+  tight: 0.04,
+  default: 0.06,
+  loose: 0.1
+} as const;
+
+export const zIndex = {
+  base: 0,
+  raised: 10,
+  sticky: 30,
+  overlay: 40,
+  modal: 50,
+  toast: 60
 } as const;
 
 export type MotionDurationKey = keyof typeof motionDurations;

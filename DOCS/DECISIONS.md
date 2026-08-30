@@ -1,6 +1,6 @@
 # DECISIONS.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-31
 
 Important product/technical decisions and rationale. Do not reopen without strong justification.
 
@@ -18,8 +18,14 @@ Important product/technical decisions and rationale. Do not reopen without stron
 | General Chat never honors stray pins | Session mode owns strategy; pins only for `reflection` sessions | **Implemented** (Slice 5) |
 | One embed per chat turn | Share MiniLM vector across memory + journal retrieval | **Implemented** (Slice 5) |
 | Journal autosave ~2.5s idle | Balance freshness vs request spam / typing cost | **Implemented** (was 10s) |
-| Landing cinematic vs app expressive | Same identity; different motion density/role | **Approved** (Phase 2 correction) — app must stay alive/tactile |
-| Unified Lumen motion system | Coherence; GSAP for complex; CSS for simple | **Approved**; tokens/primitives in progress |
+| Landing cinematic vs app expressive | Same identity; different motion density/role | **Approved** — elevate via Visual Rebuild |
+| Unified Lumen motion system | Coherence; GSAP for complex; CSS for simple | **Approved**; Visual Rebuild Slice A locks tokens |
+| Art direction: “private lamp / living notebook” | Intimate, non–AI-SaaS identity | **Approved** — Slice A tokens |
+| Visual rebuild Slice A tokens/primitives | Shared vocabulary before pages | **Implemented** |
+| Remove Daily Check-In as Today hero | Generic sliders ≠ Lumen value | **Proposed** |
+| Replace with Today’s Thread (Continuum) | Memory + journals + AI → return-to-write | **Proposed** — await approval before Slice E |
+| Visual rebuild in slices A–J | Portfolio bar without big-bang rewrite | **Proposed** |
+| Preserve backend contracts during visual rebuild | Auth, journal, chat, reflect, encryption, pg-boss | **Approved** |
 | 60fps verified, not claimed | Prefer transform/opacity; test Performance | **Approved** |
 | Full account-data purge (audit retained) | Privacy trust | **Implemented** in user delete path |
 | V1 excludes habits/voice/collab/graph/Timeline destination/etc. | Scope control | **Approved**; some deferred UI still linked |

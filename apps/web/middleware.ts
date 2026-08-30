@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const ACCESS_COOKIE = "lumen-access-token";
 
-const PUBLIC_PATHS = new Set(["/", "/login", "/register"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/register", "/design-system"]);
 
 /**
  * Route protection + auth home redirect.
@@ -49,8 +49,9 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
-    "/login",
+        "/login",
     "/register",
+    "/design-system",
     "/today",
     "/you",
     "/dashboard/:path*",
