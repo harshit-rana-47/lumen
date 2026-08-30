@@ -12,8 +12,9 @@ Last updated: 2026-08-30
 | DEK cache | Process-local 5m TTL | Fine for long-lived Node; not multi-instance serverless |
 | Client pages | Heavy `"use client"` surfaces | Target moves more work to server after flatten |
 | Vector indexes | Not auto-created in migration | Create HNSW/ivfflat after enough rows |
-| Neo4j | Extra network hop on memory sync | Removal candidate |
-| Redis | Extra infra for queues + rate limit | Retire with pg-boss cutover |
+| Neo4j | Extra hop | **Removed** Phase 1.5 |
+| Redis | Queues + rate limit | **Removed**; in-process rate limit; pg-boss for jobs |
+| pg-boss | Postgres jobs | Active; needs healthy `DATABASE_URL` |
 
 ## Phase 1 fixes that mattered for UX perf/correctness
 

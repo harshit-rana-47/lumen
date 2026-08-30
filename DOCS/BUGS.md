@@ -164,8 +164,10 @@ Structured bug register. **Do not delete** historical entries after fix.
 | ID | Severity | Status | Symptom |
 |---|---|---|---|
 | BUG-010 | Tooling | Open | `next lint` fails / unusable under Next 16 CLI tooling |
-| BUG-011 | Security | Open | RLS not enforced on API path (service role) |
-| BUG-012 | Ops | Open | Migrations not applied to live project |
-| BUG-013 | Coverage | Open | Automated tests thin (5 API Jest tests) |
+| BUG-011 | Security | Open | Most mutating routes still service-role; RLS not live-verified |
+| BUG-012 | Ops | Open | Migrations not applied/verified on live project (Supabase DNS ENOTFOUND; DATABASE_URL unset) |
+| BUG-013 | Coverage | Open | No live integration tests for queue/RLS |
 | BUG-014 | Product debt | Open | Nav exposes deferred destinations; Dear Diary / Reflect UI missing |
-| BUG-015 | Architecture | Open | BullMQ/Redis + Neo4j still active vs approved pg-boss / Postgres-only |
+| BUG-015 | Architecture | Fixed (Phase 1.5) | BullMQ/Redis + Neo4j removed; pg-boss + Postgres memory path active in code |
+| BUG-016 | Critical (caught in 1.5) | Fixed in migrations | Phase 1 RLS `match_*` used SECURITY INVOKER + `auth.uid()` — would break service-role retrieval; rewritten SECURITY DEFINER with tenancy gate |
+| BUG-017 | High | Fixed (Phase 1.5) | AI memory upsert could overwrite `user_edited` corrections — now skipped; confidence gate added |

@@ -27,41 +27,25 @@ Local MiniLM produces 384-d vectors. Similarity uses Postgres `<=>` (cosine dist
 
 ## Background jobs
 
-Embedding and memory extraction must be async (model download + LLM latency). **BullMQ+Redis** is current (`lib/queue.ts`, `workers/`). **pg-boss** is the approved PostgreSQL-native replacement (`jobs/`) — scaffolded, not cut over.
+Embedding and memory extraction must be async. **pg-boss on Postgres** is the active queue (`jobs/pgboss.ts`, `jobs/worker.ts`). BullMQ/Redis were removed in Phase 1.5. Job singleton keys per entry reduce duplicate embed/memory chains.
 
-## Why double-queue was a bug
+## Memory versioning
 
-Journal create enqueued both embedding and memory jobs, while the embedding worker also enqueued memory on success → duplicate LLM extraction. Fix: enqueue embedding only; chain memory after embed. (`BUG-001`)
+Active memories are unique on `(user_id, category, key)`. AI updates supersede prior AI rows (`status=superseded`, `superseded_by`, `version++`). User-edited active rows are never overwritten by AI. Confidence below 0.55 is dropped.
 
-## Why Lexical remounted
+## Why match_* needed SECURITY DEFINER
 
-`useMemo(..., [body, entryId])` rebuilt `initialConfig` every keystroke. LexicalComposer treats config identity as a remount signal. Seed text must be stable. (`BUG-006`)
+RLS-era SECURITY INVOKER + `auth.uid()` checks return empty for service-role workers (`auth.uid()` is null). Trusted server calls must use DEFINER with an explicit tenancy gate (`service_role` OR `user_uuid = auth.uid()`).
 
-## Why chat felt forgetful
+## Neo4j removal
 
-Stream handler sent only system prompt + latest user message. Continuity requires recent decrypted history in the messages array. (`BUG-004`)
-
-## Dear Diary chrome (upcoming concept)
-
-When implemented, “Dear Diary,” is **UI only** — must never enter stored body, embeddings, or LLM context. Product rule lives in `PRODUCT.md`; code must enforce it when the UI lands.
+Graph visualization now derives a simple user→memory star from Postgres. No second graph store.
 
 ## Deferred / do not expand in V1
 
-- Neo4j graph visualization (delete after PostgreSQL-only memory UX)  
+- Complex graph visualization  
 - Goals / Timeline / Habits as top-level destinations  
-- Rich chat personalities (prefer `general` / `reflection`)  
+- Rich chat personalities  
 - Voice/image journal types  
-- Full frontend redesign (blocked until backend prerequisites + approval)  
-
-## Root causes fixed in Phase 1 (summary)
-
-| Bug | Root cause | Fix |
-|---|---|---|
-| Double memory extraction | Parallel enqueue + chain | Embed-only enqueue |
-| Missing daily-log | UI called nonexistent route | Added `PUT /daily-log` |
-| Audit failures | `audit_log` vs `audit_logs` | Unified `audit_logs` helper |
-| No chat history | Single-turn LLM call | Last N messages included |
-| Client-only auth gate | Unwired proxy | `middleware.ts` |
-| Editor instability | Config depended on `body` | Stable seed ref |
-| Settings/user APIs dead | Empty user module | Profile/password/export/delete |
-| JSON 413 on long journals | Tiny body limit | Raised to 1mb |
+- Full frontend redesign (needs live verification + approval)  
+- Forced Express→Next flatten mid-cutover  

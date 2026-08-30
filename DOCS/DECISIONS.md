@@ -23,15 +23,17 @@ Important product/technical decisions and rationale. Do not reopen without stron
 |---|---|---|
 | Next.js App Router | Modern React server model | **Implemented** (App Router); **Next 16** vs brief’s **15** — discrepancy |
 | React + TypeScript | Team/product baseline | Implemented |
-| Supabase Postgres + Auth + Storage + RLS | Managed auth/data; RLS for tenancy | Auth/DB used; **RLS not enforced** on API path |
+| Supabase Postgres + Auth + Storage + RLS | Managed auth/data; RLS for tenancy | Auth used; RLS SQL ready; **live RLS not verified**; user client partial |
 | pgvector | Vectors next to data | Used via RPCs; depends on live schema |
-| pg-boss + Node worker | Postgres-native jobs; drop Redis queue | **Scaffolded**; BullMQ **active** |
+| pg-boss + Node worker | Postgres-native jobs; drop Redis queue | **Implemented** (BullMQ/Redis removed) |
 | Groq | Fast LLM for chat/workers | Implemented |
 | Local MiniLM (`@xenova/transformers`) | Embeddings without third-party embed API | Implemented |
 | shadcn + Tailwind | UI kit | Partial / present |
 | Lexical | Rich text journal | Implemented; **flattened to plain text** on store |
 | Zod | Validation | Implemented |
 | Vitest + Playwright | Approved test tooling | **Discrepancy:** API uses **Jest**; Playwright not established |
+| Remove Neo4j | Single memory store | **Implemented** (Postgres graph view) |
+| Defer full Express→Next flatten in 1.5 | Risk during queue cutover | **Documented**; Express remains |
 
 ## Architecture patterns
 
@@ -40,8 +42,8 @@ Important product/technical decisions and rationale. Do not reopen without stron
 | Shared context assembly | One retrieval brain for Chat + Reflect | Implemented (`lib/context.ts`) |
 | General vs Reflect context strategies | Pin entry for Reflect; semantic global for Chat | Implemented in API |
 | Envelope encryption (KEK/DEK) | Strong at-rest privacy | Implemented — **keep** |
-| Flatten Express into Next | Target single app | **Planned**; Express still live |
-| Remove Neo4j | Avoid dual graph store | **Still present** — transitional |
+| Flatten Express into Next | Target single app | **Planned**; Express still live (1.5 deferred force-flatten) |
+| Remove Neo4j | Avoid dual graph store | **Done** |
 
 ## Explicit non-decisions / do not add casually
 

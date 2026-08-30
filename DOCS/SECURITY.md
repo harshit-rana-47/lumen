@@ -1,52 +1,36 @@
 # SECURITY.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (Phase 1.5)
 
-## Encryption (implemented)
+## Encryption
 
-- Algorithm: AES-256-GCM  
-- IV: 12 bytes random per encryption  
-- Auth tag: 16 bytes  
-- DEK: 32-byte hex, wrapped by master KEK (`MASTER_ENCRYPTION_KEY`)  
-- In-memory DEK cache TTL: ~5 minutes (process-local — not suitable for multi-instance serverless without redesign)  
+AES-256-GCM; per-user DEK wrapped by `MASTER_ENCRYPTION_KEY`; ~5m process-local DEK cache.
 
-Never commit `.env`. Never rotate `MASTER_ENCRYPTION_KEY` after real user data exists without a migration plan.
+## Access model
 
-## AuthN / AuthZ
+| Client | Use |
+|---|---|
+| `supabaseAdmin` (service role) | Auth admin, workers, DEK load, audit insert, account purge, most writes today |
+| `createUserScopedClient(jwt)` / `request.db` | RLS-ready user client; used for journal **list/get** |
 
-| Concern | Current | Target |
-|---|---|---|
-| Tokens | Supabase access JWT `Authorization: Bearer` | same |
-| Web gate | Cookies mirrored for `middleware.ts` | SSR session + RLS |
-| API validation | `supabaseAdmin.auth.getUser(token)` | same or user-scoped client |
-| Authorization | App-layer `user_id` filters | RLS `auth.uid() = user_id` |
+Auth still validated via `supabaseAdmin.auth.getUser(token)`.
 
-RLS policies exist in migrations but are **not exercised** by the Express **service-role** path.
+## RLS
 
-## Rate limits (implemented)
+Policies exist in migrations. **Not live-verified** until `db:migrate` + `db:verify` succeed on a reachable project.
 
-Redis-backed `express-rate-limit` buckets (auth / register / API / chat / export). Will need rethink when Redis is retired.
+`match_*` are SECURITY DEFINER with tenancy: service_role OR `user_uuid = auth.uid()`.
 
-## Account deletion (implemented)
+## Rate limits
 
-- Requires exact confirmation string  
-- Clears DEK cache  
-- Soft-deletes profile and nulls `encrypted_dek`  
-- Hard-deletes Auth user  
-- Deletes owned application data  
-- Keeps `audit_logs` for forensics  
+In-process `express-rate-limit` (Redis removed). Fine for single instance.
 
-Approved product decision: **full account-data purge** of owned content (audit retained).
+## Account deletion
 
-## Secrets handling
+Confirmation phrase → purge owned tables → soft-delete profile/DEK → delete Auth user → keep `audit_logs`.
 
-- `.gitignore` excludes `.env`  
-- `.env.example` documents required keys without secrets  
-- Service role key must never ship to the browser  
+## Open gaps
 
-## Open security gaps (honest)
-
-1. Service role bypasses RLS for all API data access  
-2. Migrations/RLS may not be live on production DB yet  
-3. Neo4j holds memory graph data outside Postgres RLS model  
-4. Limited automated security/regression tests  
+1. Most mutating routes still use service role (app-layer `user_id` filters)
+2. Live RLS verification pending
+3. Limited automated RLS tests (need live DB)

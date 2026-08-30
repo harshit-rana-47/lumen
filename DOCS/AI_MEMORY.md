@@ -1,49 +1,40 @@
 # AI_MEMORY.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (Phase 1.5)
 
-## Pipeline (current, implemented)
+## Pipeline (implemented)
 
 ```
 Journal save (encrypted)
-  → enqueue embedding job (BullMQ)
-  → embedding.worker: MiniLM embed → store vector on journal_entries
-  → enqueue memory job (once, chained)
-  → memory.worker: Groq extract facts → upsert memory_items (encrypted)
-  → Neo4j sync (transitional)
+  → enqueue journal.embed (pg-boss, singleton per entry)
+  → embedding.worker: MiniLM → store vector
+  → enqueue journal.extract-memory (singleton per entry)
+  → memory.worker: Groq extract
+       → confidence gate (< 0.55 dropped)
+       → never overwrite user_edited active rows
+       → supersede prior AI active row + insert new version
+  → Postgres memory_items only (Neo4j removed)
 ```
 
-Insight worker runs separately (scheduled/nightly-style path) for insights generation.
+Insights: `insights.nightly` scheduled via pg-boss (`0 2 * * *`).
 
-## Context assembly (shared)
+## Context assembly
 
-File: `apps/api/src/lib/context.ts`
+`apps/api/src/lib/context.ts`
 
 | Mode | Strategy |
 |---|---|
-| `general` | Semantic memories + relevant journals + conversation history |
-| `reflection` | **Pinned journal entry is authoritative**; other retrieval supportive |
+| `general` | Semantic memories + semantic (or recent fallback) journals |
+| `reflection` | **Pinned entry authoritative** + memories + other relevant journals |
 
-Chat service streams via Groq and includes recent decrypted history so turns are continuous.
+Chat passes `pinnedEntryId` / session mode into context. Reflect **UI** still planned.
 
-## Embeddings
+## What replaced Neo4j
 
-- `@xenova/transformers` local MiniLM  
-- Dimension: 384  
-- Used for journals and memories; similarity via pgvector RPCs  
+`GET` memory graph now builds a star graph (user → active memories) from Postgres. No graph database.
 
-## LLM
+## Not implemented
 
-- **Groq** for chat streaming and worker extraction/insights  
-- No multi-provider selection in V1  
-
-## What is not implemented yet
-
-- Dear Diary chrome excluded from embeddings/LLM by product rule (when UI lands, chrome must stay out of stored body)  
-- Reflect panel UX (API modes ready)  
-- Memory UX without Neo4j (graph removal planned)  
-- pg-boss-backed workers (scaffold only)  
-
-## Phase 1 lesson: double extraction
-
-Previously journal create enqueued both embed and memory while embed also chained memory → duplicate LLM work. **Fix:** enqueue embed only; chain memory after successful embed. See `BUGS.md` BUG-001.
+- Dear Diary chrome exclusion (UI pending)
+- Reflect panel UI
+- Live E2E verification on unreachable Supabase project

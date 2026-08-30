@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (Phase 1.5)
 
 Do not mark future work as completed.
 
@@ -8,57 +8,43 @@ Do not mark future work as completed.
 
 ### Phase 0 / Phase 1 — cleanup and stabilization
 
-- Git baseline: `chore: baseline before Lumen rebuild`  
-- Dead artifact / unused dependency removal  
-- Critical/high correctness fixes (double memory enqueue, audit_logs, daily-log, chat history, middleware, Lexical remount, user APIs, JSON body limit, etc.)  
-- Versioned `supabase/migrations` (baseline schema + RLS)  
-- pg-boss scaffold (`apps/api/src/jobs/`) — not cut over  
-- Phase 1 learning/architecture notes (now consolidated into `DOCS/`)  
-- Verification: typecheck pass; API Jest **5/5**; `next lint` still broken on Next 16 CLI  
+(See git history through docs system commit.)
+
+### Phase 1.5 — Backend cutover (code complete; live DB ops pending)
+
+- Fixed `match_*` RPCs for service-role workers (SECURITY DEFINER + tenancy gate)
+- Memory versioning / supersession schema migration
+- User-scoped Supabase client on authenticated requests (journal list/get use it)
+- **pg-boss** is the active queue; BullMQ/Redis removed
+- Neo4j removed; memory graph served from Postgres
+- Memory pipeline: confidence gating + never overwrite `user_edited`
+- Context: semantic journals + general/reflection strategies
+- Expanded Jest coverage (14 tests)
+- Migration apply/verify scripts under `apps/api/scripts/`
 
 ## CURRENT
 
-### Phase 1.5 — Backend Cutover
+### Phase 1.5 ops verification
 
-**Status:** Planned / next — **not started**.
+- Restore reachable Supabase / set `DATABASE_URL`
+- Apply + verify migrations/RLS on live project
+- Run end-to-end pipeline against real data
 
-Intended themes (high level; execute only when phase is approved):
-
-- Apply and reconcile migrations on live Supabase  
-- Activate pg-boss; migrate job enqueue off BullMQ  
-- Begin Express → Next server-boundary cutover  
-- Reduce Neo4j / service-role reliance toward approved target  
+**Blocked on:** configured Supabase project DNS currently ENOTFOUND; `DATABASE_URL` unset in local `.env`
 
 ## NEXT
 
-1. Backend stabilization after cutover  
-2. Functional verification of journal → embed → memory → chat/reflect paths  
-3. Frontend redesign (Dear Diary, Reflect panel, V1 nav IA) — **only after** backend prerequisites are stable and explicitly approved  
+1. Complete live verification above  
+2. Phase 2 frontend redesign (Dear Diary, Reflect panel, V1 nav) — **only with explicit approval**  
 
 ## BLOCKED
 
 | Item | Blocked by |
 |---|---|
-| Frontend redesign / Dear Diary / Reflect panel polish | Backend cutover + functional verification; explicit approval |
-| Relying on RLS for API authorization | Migrations applied + user-scoped clients (not service role alone) |
-| Retiring Redis | pg-boss cutover complete and stable |
-| Retiring Neo4j | Postgres-only memory UX/path verified |
+| Claiming RLS active in production | Live `db:migrate` + `db:verify` + authenticated policy tests |
+| Frontend redesign | Live backend verification + explicit approval |
+| Full Express → Next flatten | Deliberately deferred as too risky mid-cutover; see ARCHITECTURE.md |
 
-## DEFERRED (V1.1 / V1.2 / later)
+## DEFERRED
 
-- Habits tracker  
-- Voice / image journal types  
-- Collaborative workspaces  
-- Native mobile apps  
-- Multi-provider LLM selection  
-- Complex graph visualization  
-- Push notifications  
-- Separate Timeline destination  
-- Rich chat personalities / intents  
-- Realtime multi-device sync  
-- Full Vitest + Playwright suite (target tooling; not required to reopen architecture)
-
-## Explicit non-goals right now
-
-- Do not start Phase 1.5 until approved after this docs milestone  
-- Do not start frontend redesign in the same breath as backend cutover  
+Habits, voice/image, collab, native apps, multi-provider LLM, complex graph viz, push, Timeline destination, rich chat personalities, realtime sync, Vitest/Playwright migration.

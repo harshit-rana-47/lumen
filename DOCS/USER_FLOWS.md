@@ -22,9 +22,9 @@ Describes **current** flows after Phase 1 fixes. Approved future UX (Dear Diary 
 
 1. Lexical editor autosaves (~10s) → create/update journal API  
 2. Body encrypted with user DEK (**plain text** extracted from Lexical for storage today)  
-3. Embedding job enqueued (**BullMQ**)  
-4. Embedding worker stores vector, then enqueues memory extraction **once**  
-5. Memory worker extracts facts → encrypted `memory_items` (+ Neo4j sync, transitional)  
+3. Embedding job enqueued (**pg-boss** `journal.embed`)  
+4. Embedding worker stores vector, then enqueues memory extraction once (`journal.extract-memory`)  
+5. Memory worker extracts facts → versioned encrypted `memory_items` (skips user_edited / low confidence)  
 
 **Not yet:** Dear Diary heading chrome; Lexical rich structure persistence.
 
@@ -47,7 +47,7 @@ Describes **current** flows after Phase 1 fixes. Approved future UX (Dear Diary 
 
 1. Memory pages list cards / graph UI  
 2. API CRUD on `memory_items` (encrypted values)  
-3. Graph visualization uses Neo4j-backed data path today  
+3. Graph visualization uses **Postgres** active memories (Neo4j removed)  
 
 **Product direction:** correctability stays; complex graph viz is deferred.
 

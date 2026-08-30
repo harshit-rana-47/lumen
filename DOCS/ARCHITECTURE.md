@@ -1,19 +1,17 @@
 # ARCHITECTURE.md
 
-Last updated: 2026-08-30
-
-Documents **approved target** architecture and clearly marks what is implemented today.
+Last updated: 2026-08-30 (Phase 1.5)
 
 ## Status legend
 
 - **implemented** — live in the running path  
-- **partial** — scaffolded or incomplete  
+- **partial** — incomplete or not live-verified  
 - **planned** — approved, not built  
-- **deferred** — explicitly out of V1  
+- **deferred** — out of V1  
 
 ---
 
-## Approved target architecture
+## Approved target
 
 ```
 Browser (Next.js App Router)
@@ -21,78 +19,66 @@ Browser (Next.js App Router)
   → Supabase Auth SSR + RLS
   → PostgreSQL + pgvector
   → pg-boss worker process (Node)
-  → Groq + local MiniLM (@xenova/transformers)
-  → Envelope encryption (AES-256-GCM + per-user DEK)
+  → Groq + local MiniLM
+  → Envelope encryption
 ```
-
-Approved stack keywords: Next.js App Router, React+TS, Supabase (Postgres/Auth/Storage/RLS), pgvector, pg-boss, Node worker, Groq, local MiniLM, shadcn+Tailwind, Lexical, Zod, Vitest+Playwright.
-
-Do **not** add infrastructure because it is popular.
 
 ---
 
-## Current (transitional) architecture — implemented
+## Current architecture (Phase 1.5)
 
 ```
-Browser (Next.js 16 App Router, mostly client pages)
+Browser (Next.js 16, mostly client)
   → Axios + Supabase Auth session
-  → Express API (/api/v1) on separate process
-      → supabaseAdmin (service role — bypasses RLS)
+  → Express API (/api/v1)
+      → auth middleware → user-scoped client (RLS-ready) + service-role admin
       → encrypt/decrypt with user DEK
-      → BullMQ (Redis) → workers (embed, memory, insight)
-      → Neo4j (memory graph sync) [removal candidate]
-      → Groq (chat + workers)
-      → @xenova/transformers (local embeddings)
+      → pg-boss (Postgres) → workers (embed → memory; insights)
+      → Groq + @xenova/transformers
 ```
 
-Monorepo: Turborepo with `apps/web`, `apps/api`, `packages/shared`, `packages/config`. Deployed as separate web + API (Vercel/Railway configs present).
+BullMQ, Redis, and Neo4j are **removed**.
 
 ---
 
-## Component status matrix
+## Component status
 
 | Concern | Status | Notes |
 |---|---|---|
-| Next.js App Router frontend | **implemented** (Next **16**, not 15) | Pages largely `"use client"` |
-| Express REST API | **implemented** | Transitional; flatten later |
-| Supabase Auth | **implemented** | JWT bearer + cookie mirror for middleware |
-| Supabase Postgres + tables | **partial** | App assumes tables; migrations prepared, **not applied live** |
-| RLS policies | **partial** | SQL in migrations; **not exercised** (service role) |
-| pgvector + match RPCs | **partial** | In migrations + legacy `apps/api/supabase/`; depends on live DB |
-| Local MiniLM embeddings | **implemented** | Worker path |
-| Groq LLM | **implemented** | Chat + extraction |
-| Shared context assembly | **implemented** | `lib/context.ts` — `general` \| `reflection` |
-| BullMQ + Redis | **implemented** | Active queues |
-| pg-boss | **partial** | Scaffold in `jobs/`; not active enqueue path |
-| Neo4j memory graph | **implemented** (transitional) | Approved for removal |
-| Envelope encryption | **implemented** | Keep |
-| Single Next app + server actions | **planned** | Phase 1.5+ |
-| Dear Diary / Reflect UI | **planned** | Product approved; UI not built |
-| Vitest + Playwright | **planned** | Current API tests use **Jest** |
-| Graph viz / Timeline / Habits UX | **deferred** | Nav still shows some of these |
+| Express REST API | **implemented** | Transitional; flatten planned |
+| Next App Router UI | **implemented** (Next 16) | No Server Actions for core product yet |
+| pg-boss jobs | **implemented** | Requires `DATABASE_URL` |
+| Local MiniLM + Groq | **implemented** | |
+| Shared context assembly | **implemented** | `general` \| `reflection` |
+| Envelope encryption | **implemented** | |
+| Schema migrations | **partial** | In repo; **not live-verified** (project DNS down) |
+| RLS policies | **partial** | SQL ready; **not live-verified** |
+| User-scoped DB client | **partial** | Attached on auth; used for journal list/get |
+| Service-role workers/admin | **implemented** | Required for DEK, purge, jobs |
+| Next server actions flatten | **planned** | See remaining migration below |
+| Dear Diary / Reflect UI | **planned** | |
+| Graph viz / Timeline / Habits | **deferred** | |
 
 ---
 
-## Cutover checklist (remaining — Phase 1.5+)
+## Remaining Express → Next migration (not forced in 1.5)
 
-1. Apply `supabase/migrations/*` to the project DB (diff carefully if dashboard schema exists)  
-2. Confirm workers using service role still function with RLS enabled (service_role bypasses RLS)  
-3. Point `DATABASE_URL` at Supabase Postgres; run pg-boss worker  
-4. Switch journal enqueue from BullMQ to pg-boss helpers  
-5. Remove BullMQ/Redis/Neo4j once stable  
-6. Flatten monorepo into a single Next.js app + worker package  
-7. Move user-facing data access onto RLS-scoped clients  
+Safe next steps (future phase):
+
+1. Move shared domain logic (`journal`, `chat`, `context`, `encrypt`) into a package importable by Next  
+2. Add Route Handlers / Server Actions for journal + chat first  
+3. Keep pg-boss worker as a separate Node process  
+4. Retire Express when parity is proven  
+
+Complete flattening was judged **too risky** during queue/Neo4j cutover.
 
 ---
 
-## Security model summary
+## Security model
 
-| Layer | Current | Target |
-|---|---|---|
-| At rest | AES-256-GCM + wrapped DEK | same |
-| In transit | HTTPS in production | same |
-| AuthN | Supabase JWT | same |
-| AuthZ | App-layer `user_id` filters | RLS `auth.uid() = user_id` |
-| Account deletion | Verified phrase; purge owned data; retain `audit_logs`; delete Auth user | same |
-
-See `SECURITY.md`, `DATABASE.md`, `AI_MEMORY.md` for detail.
+| Layer | Current |
+|---|---|
+| At rest | AES-256-GCM + wrapped DEK |
+| AuthN | Supabase JWT |
+| AuthZ | App `user_id` filters + optional RLS-scoped client; service role for workers |
+| Account deletion | Verified phrase; purge owned data; retain `audit_logs` |

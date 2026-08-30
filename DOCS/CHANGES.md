@@ -60,3 +60,46 @@ Chronological implementation history. Concise.
 - **Files:** `DOCS/*`, `README.md`  
 - **Tests:** Documentation verification checklist  
 - **Impact:** Process only — no application runtime change; Phase 1.5 **not** started  
+
+---
+
+### Phase 1.5 — Migrations hardened
+
+- **Change:** Fix `match_*` for service_role; add memory versioning columns + partial unique; apply/verify scripts  
+- **Why:** RLS cutover must not break workers; support supersession  
+- **Files:** `supabase/migrations/*`, `apps/api/scripts/*`  
+- **Verification:** Scripts ready; live apply blocked (DNS / empty DATABASE_URL)  
+
+---
+
+### Phase 1.5 — Authenticated DB access
+
+- **Change:** `createUserScopedClient`; attach `request.db`; journal list/get prefer user client  
+- **Why:** Reduce inappropriate exclusive service-role usage without breaking workers  
+- **Files:** `config/supabase.ts`, `middleware/auth.ts`, journal service/router  
+
+---
+
+### Phase 1.5 — pg-boss cutover; remove BullMQ/Redis
+
+- **Change:** Enqueue/process via pg-boss only; in-memory rate limits; health checks Postgres  
+- **Why:** Approved architecture; eliminate dual queues  
+- **Files:** `jobs/*`, `lib/queue.ts`, workers, `env.ts`, `rateLimit.ts`, `package.json`  
+- **Tests:** job contract + typecheck  
+
+---
+
+### Phase 1.5 — Remove Neo4j; memory pipeline hardening
+
+- **Change:** Postgres-only memory + graph; confidence gate; protect user_edited; supersede versions  
+- **Why:** Approved Postgres memory path; correctability  
+- **Files:** `memory.worker.ts`, `memory.service.ts`; deleted `config/neo4j.ts`  
+- **Tests:** memory.pipeline.test.ts  
+
+---
+
+### Phase 1.5 — Context + tests + docs
+
+- **Change:** Semantic journal retrieval in context; expand Jest; update DOCS for actual state  
+- **Why:** Reflect/general strategies verified at unit level; docs honesty about live DB  
+- **Files:** `lib/context.ts`, tests, `DOCS/*`  
