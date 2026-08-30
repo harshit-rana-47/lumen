@@ -1,11 +1,14 @@
 import type { User } from "@supabase/supabase-js";
 import type { NextFunction, Request, Response } from "express";
-import { supabaseAdmin } from "../config/supabase";
+import { createUserScopedClient, supabaseAdmin, type DbClient } from "../config/supabase";
 
 declare global {
   namespace Express {
     interface Request {
       user?: User;
+      accessToken?: string;
+      /** RLS-scoped Supabase client for the authenticated user (when token present). */
+      db?: DbClient;
     }
   }
 }
@@ -50,5 +53,7 @@ export async function authMiddleware(
   }
 
   request.user = data.user;
+  request.accessToken = token;
+  request.db = createUserScopedClient(token);
   next();
 }

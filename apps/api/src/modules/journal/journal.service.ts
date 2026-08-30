@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { supabaseAdmin } from "../../config/supabase";
 import { embedText } from "../../config/embeddings";
 import { encrypt } from "../../lib/encrypt";
 import { writeAuditLog } from "../../lib/audit";
-import { embeddingQueue } from "../../lib/queue";
+import { enqueueEmbedJob } from "../../lib/queue";
 import { getUserDEK } from "../../lib/userDEK";
+import { supabaseAdmin, type DbClient } from "../../config/supabase";
 import {
   decryptOptionalText,
   decryptRequiredText,
@@ -135,17 +135,21 @@ function storageObjectName(fileName: string): string {
  * Root cause of double memory extraction: create() previously also enqueued
  * memory-queue, while embedding.worker already chains memory-queue on success.
  */
-async function enqueueJournalPipeline(userId: string, entryId: string, reason: string): Promise<void> {
-  await embeddingQueue.add(reason, { userId, entryId });
+async function enqueueJournalPipeline(userId: string, entryId: string, _reason: string): Promise<void> {
+  await enqueueEmbedJob({ userId, entryId });
 }
 
 export class JournalService {
-  async list(userId: string, query: ListJournalQuery) {
+  /**
+   * @param db Prefer RLS-scoped user client from auth middleware when available.
+   * Falls back to service-role admin (still filters by userId).
+   */
+  async list(userId: string, query: ListJournalQuery, db: DbClient = supabaseAdmin) {
     const dek = await getUserDEK(userId);
     const from = (query.page - 1) * query.limit;
     const to = from + query.limit - 1;
 
-    let request = supabaseAdmin
+    let request = db
       .from("journal_entries")
       .select(JOURNAL_LIST_SELECT, { count: "exact" })
       .eq("user_id", userId)
@@ -223,9 +227,9 @@ export class JournalService {
     return toEntry(data, dek);
   }
 
-  async get(userId: string, id: string): Promise<JournalEntry> {
+  async get(userId: string, id: string, db: DbClient = supabaseAdmin): Promise<JournalEntry> {
     const dek = await getUserDEK(userId);
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await db
       .from("journal_entries")
       .select(JOURNAL_FULL_SELECT)
       .eq("user_id", userId)

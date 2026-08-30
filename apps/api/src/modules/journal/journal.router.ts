@@ -54,7 +54,8 @@ journalRouter.get(
   asyncHandler(async (request: Request, response: Response) => {
     const data = await journalService.list(
       currentUserId(request),
-      request.query as unknown as ListJournalQuery
+      request.query as unknown as ListJournalQuery,
+      request.db
     );
 
     response.json({
@@ -113,7 +114,7 @@ journalRouter.get(
   "/:id",
   validate({ params: journalIdParamsSchema }),
   asyncHandler(async (request: Request, response: Response) => {
-    const data = await journalService.get(currentUserId(request), paramId(request));
+    const data = await journalService.get(currentUserId(request), paramId(request), request.db);
 
     response.json({
       success: true,
