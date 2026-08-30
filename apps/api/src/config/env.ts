@@ -42,8 +42,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: requiredString,
 
   REDIS_URL: requiredString,
-  UPSTASH_REDIS_REST_URL: requiredUrl,
-  UPSTASH_REDIS_REST_TOKEN: requiredString,
 
   NEO4J_URI: requiredString,
   NEO4J_USERNAME: requiredString,
