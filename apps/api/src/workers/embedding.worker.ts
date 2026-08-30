@@ -4,8 +4,8 @@ import { supabaseAdmin } from "../config/supabase";
 import { memoryQueue, queueNames } from "../lib/queue";
 import { getDecryptedJournalBody, type JournalJobData, workerOptions } from "./worker.shared";
 
-export async function processEmbeddingJob(job: Job<JournalJobData>): Promise<void> {
-  const body = await getDecryptedJournalBody(job.data);
+export async function processEmbeddingJob(data: JournalJobData): Promise<void> {
+  const body = await getDecryptedJournalBody(data);
   const embedding = await embedText(body);
 
   const { error } = await supabaseAdmin
@@ -15,8 +15,8 @@ export async function processEmbeddingJob(job: Job<JournalJobData>): Promise<voi
       embedding_status: "done",
       updated_at: new Date().toISOString()
     })
-    .eq("id", job.data.entryId)
-    .eq("user_id", job.data.userId)
+    .eq("id", data.entryId)
+    .eq("user_id", data.userId)
     .is("deleted_at", null);
 
   if (error) {
@@ -24,13 +24,13 @@ export async function processEmbeddingJob(job: Job<JournalJobData>): Promise<voi
   }
 
   await memoryQueue.add("embedding.done", {
-    userId: job.data.userId,
-    entryId: job.data.entryId
+    userId: data.userId,
+    entryId: data.entryId
   });
 }
 
 export const embeddingWorker = new Worker<JournalJobData>(
   queueNames.embedding,
-  processEmbeddingJob,
+  async (job: Job<JournalJobData>) => processEmbeddingJob(job.data),
   workerOptions
 );

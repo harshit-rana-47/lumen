@@ -162,8 +162,8 @@ async function insertInsight(userId: string, insight: GeneratedInsight): Promise
   }
 }
 
-export async function processInsightJob(job: Job<InsightJobData>): Promise<void> {
-  const users = await getUsersForInsight(job.data.userId);
+export async function processInsightJob(data: InsightJobData = {}): Promise<void> {
+  const users = await getUsersForInsight(data.userId);
 
   for (const user of users) {
     const moodRows = await getMoodRows(user.id);
@@ -197,6 +197,6 @@ export async function scheduleNightlyInsights(): Promise<void> {
 
 export const insightWorker = new Worker<InsightJobData>(
   queueNames.insight,
-  processInsightJob,
+  async (job: Job<InsightJobData>) => processInsightJob(job.data ?? {}),
   workerOptions
 );

@@ -168,18 +168,18 @@ async function upsertFact(userId: string, entryId: string, dek: string, fact: Ex
   );
 }
 
-export async function processMemoryJob(job: Job<JournalJobData>): Promise<void> {
-  const body = await getDecryptedJournalBody(job.data);
+export async function processMemoryJob(data: JournalJobData): Promise<void> {
+  const body = await getDecryptedJournalBody(data);
   const [dek, disabled, facts] = await Promise.all([
-    getUserDEK(job.data.userId),
-    disabledCategories(job.data.userId),
+    getUserDEK(data.userId),
+    disabledCategories(data.userId),
     extractFacts(body)
   ]);
 
   const enabledFacts = facts.filter((fact) => !disabled.has(fact.category));
 
   for (const fact of enabledFacts) {
-    await upsertFact(job.data.userId, job.data.entryId, dek, fact);
+    await upsertFact(data.userId, data.entryId, dek, fact);
   }
 
   const { error } = await supabaseAdmin
@@ -188,8 +188,8 @@ export async function processMemoryJob(job: Job<JournalJobData>): Promise<void> 
       memory_status: "done",
       updated_at: new Date().toISOString()
     })
-    .eq("id", job.data.entryId)
-    .eq("user_id", job.data.userId)
+    .eq("id", data.entryId)
+    .eq("user_id", data.userId)
     .is("deleted_at", null);
 
   if (error) {
@@ -199,6 +199,6 @@ export async function processMemoryJob(job: Job<JournalJobData>): Promise<void> 
 
 export const memoryWorker = new Worker<JournalJobData>(
   queueNames.memory,
-  processMemoryJob,
+  async (job: Job<JournalJobData>) => processMemoryJob(job.data),
   workerOptions
 );

@@ -41,6 +41,12 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: requiredUrl.transform(normalizeSupabaseUrl),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: requiredString,
 
+  /** PostgreSQL connection string for pg-boss (target queue). Optional until cutover. */
+  DATABASE_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().min(1).optional()
+  ),
+
   REDIS_URL: requiredString,
 
   NEO4J_URI: requiredString,
