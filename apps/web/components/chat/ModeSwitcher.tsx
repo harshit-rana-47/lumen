@@ -3,11 +3,13 @@
 import type { ChatMode } from "@/stores/chatStore";
 
 const modes: Array<{ label: string; value: ChatMode }> = [
+  { label: "General", value: "general" },
   { label: "Friend", value: "friend" },
   { label: "Coach", value: "coach" },
   { label: "Therapist", value: "therapist" },
   { label: "Mentor", value: "mentor" },
   { label: "Devil's Advocate", value: "devils_advocate" },
+  { label: "Hypothetical", value: "hypothetical" },
   { label: "Future Self", value: "future_self" }
 ];
 

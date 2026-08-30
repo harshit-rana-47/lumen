@@ -4,6 +4,16 @@ import { decrypt } from "./encrypt";
 import { getUserDEK } from "./userDEK";
 import { decryptOptionalText, decryptRequiredText } from "../modules/journal/journal.encrypt";
 
+export type ContextMode = "general" | "reflection";
+
+export type BuildContextOptions = {
+  mode?: ContextMode;
+  /** When mode is reflection, this entry is pinned as authoritative context. */
+  pinnedEntryId?: string;
+  /** Max recent chat turns to include (used by chat service separately). */
+  message?: string;
+};
+
 type MemoryMatch = {
   id: string;
   similarity: number;
@@ -28,17 +38,25 @@ type JournalSummaryRow = {
   entry_date: string;
 };
 
-type GoalRow = {
-  id: string;
-  title_encrypted: string;
-  iv: string;
-  auth_tag: string;
-  category: string | null;
-  progress_pct: number | null;
-};
-
 function truncate(value: string, maxLength: number): string {
   return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+}
+
+function decryptJournalRow(row: JournalSummaryRow, dek: string): string {
+  const title = decryptOptionalText(row.title_encrypted, dek) ?? "Untitled";
+  const body = decryptRequiredText(
+    row.body_encrypted,
+    dek,
+    row.iv && row.auth_tag
+      ? {
+          ciphertext: row.body_encrypted,
+          iv: row.iv,
+          authTag: row.auth_tag
+        }
+      : undefined
+  );
+
+  return `${row.entry_date} - ${title}: ${truncate(body, 280)}`;
 }
 
 async function getRelevantMemories(userId: string, message: string, dek: string): Promise<string[]> {
@@ -94,86 +112,101 @@ async function getRelevantMemories(userId: string, message: string, dek: string)
   });
 }
 
-async function getRecentJournalSummaries(userId: string, dek: string): Promise<string[]> {
+async function getPinnedEntry(userId: string, entryId: string, dek: string): Promise<string | null> {
   const { data, error } = await supabaseAdmin
+    .from("journal_entries")
+    .select("id,title_encrypted,body_encrypted,iv,auth_tag,entry_date")
+    .eq("user_id", userId)
+    .eq("id", entryId)
+    .is("deleted_at", null)
+    .maybeSingle<JournalSummaryRow>();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return decryptJournalRow(data, dek);
+}
+
+async function getRecentJournalSummaries(
+  userId: string,
+  dek: string,
+  excludeId?: string
+): Promise<string[]> {
+  let request = supabaseAdmin
     .from("journal_entries")
     .select("id,title_encrypted,body_encrypted,iv,auth_tag,entry_date")
     .eq("user_id", userId)
     .is("deleted_at", null)
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(5)
-    .returns<JournalSummaryRow[]>();
+    .limit(5);
+
+  if (excludeId) {
+    request = request.neq("id", excludeId);
+  }
+
+  const { data, error } = await request.returns<JournalSummaryRow[]>();
 
   if (error) {
     throw error;
   }
 
-  return (data ?? []).map((row) => {
-    const title = decryptOptionalText(row.title_encrypted, dek) ?? "Untitled";
-    const body = decryptRequiredText(
-      row.body_encrypted,
-      dek,
-      row.iv && row.auth_tag
-        ? {
-            ciphertext: row.body_encrypted,
-            iv: row.iv,
-            authTag: row.auth_tag
-          }
-        : undefined
-    );
-
-    return `${row.entry_date} - ${title}: ${truncate(body, 280)}`;
-  });
+  return (data ?? []).map((row) => decryptJournalRow(row, dek));
 }
 
-async function getActiveGoals(userId: string, dek: string): Promise<string[]> {
-  const { data, error } = await supabaseAdmin
-    .from("goals")
-    .select("id,title_encrypted,iv,auth_tag,category,progress_pct")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(10)
-    .returns<GoalRow[]>();
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []).map((goal) => {
-    const title = decrypt(
-      {
-        ciphertext: goal.title_encrypted,
-        iv: goal.iv,
-        authTag: goal.auth_tag
-      },
-      dek
-    );
-
-    return `${title}${goal.category ? ` (${goal.category})` : ""} - ${goal.progress_pct ?? 0}%`;
-  });
-}
-
-export async function buildSystemContext(userId: string, message: string): Promise<string> {
+/**
+ * Shared context assembly for General Chat and Reflect-on-this.
+ * - general: semantic memories + recent journals
+ * - reflection: pinned entry is authoritative; memories + other journals are supplemental
+ * Goals intentionally omitted from V1 context (deferred feature).
+ */
+export async function buildSystemContext(
+  userId: string,
+  message: string,
+  options: BuildContextOptions = {}
+): Promise<string> {
+  const mode = options.mode ?? "general";
   const dek = await getUserDEK(userId);
-  const [memories, journals, goals] = await Promise.all([
+
+  const [memories, pinned, journals] = await Promise.all([
     getRelevantMemories(userId, message, dek),
-    getRecentJournalSummaries(userId, dek),
-    getActiveGoals(userId, dek)
+    mode === "reflection" && options.pinnedEntryId
+      ? getPinnedEntry(userId, options.pinnedEntryId, dek)
+      : Promise.resolve(null),
+    getRecentJournalSummaries(userId, dek, options.pinnedEntryId)
   ]);
 
-  return [
-    "You are Lumen, a private AI journaling and memory companion. Be warm, concise, and grounded in the user's own history.",
+  const lines = [
+    "You are Lumen, a private AI journaling companion. Be warm, concise, and grounded in the user's own history.",
     "Use the context below only when relevant. Do not reveal implementation details or mention encrypted storage.",
-    "",
+    ""
+  ];
+
+  if (mode === "reflection") {
+    lines.push(
+      "Mode: Reflect on this journal entry.",
+      "The pinned entry below is the authoritative focus. Treat other context as supporting history only.",
+      "",
+      "Pinned journal entry:",
+      pinned ?? "Pinned entry unavailable.",
+      ""
+    );
+  } else {
+    lines.push("Mode: General chat.", "");
+  }
+
+  lines.push(
     "Relevant memories:",
     memories.length ? memories.join("\n") : "None available.",
     "",
-    "Recent journal summaries:",
-    journals.length ? journals.join("\n") : "None available.",
-    "",
-    "Active goals:",
-    goals.length ? goals.join("\n") : "None available."
-  ].join("\n");
+    mode === "reflection" ? "Other recent journal summaries:" : "Recent journal summaries:",
+    journals.length ? journals.join("\n") : "None available."
+  );
+
+  return lines.join("\n");
 }

@@ -36,7 +36,7 @@ export const corsMiddleware = cors({
 });
 
 export const jsonMiddleware = express.json({
-  limit: "10kb"
+  limit: "1mb"
 });
 
 export const morganMiddleware = morgan("combined");

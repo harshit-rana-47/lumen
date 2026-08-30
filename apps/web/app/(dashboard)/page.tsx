@@ -57,7 +57,7 @@ export default function TodayPage() {
       await createJournalEntry({
         title: "Today",
         body,
-        type: "quick",
+        type: "free",
         moodScore: mood,
         energyScore: energy,
         entryDate: todayKey()

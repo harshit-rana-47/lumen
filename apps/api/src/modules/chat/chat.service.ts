@@ -2,7 +2,7 @@ import type { Response } from "express";
 import { CHAT_MODEL, groqClient } from "../../config/groq";
 import { supabaseAdmin } from "../../config/supabase";
 import { encrypt, decrypt } from "../../lib/encrypt";
-import { buildSystemContext } from "../../lib/context";
+import { buildSystemContext, type ContextMode } from "../../lib/context";
 import { getUserDEK } from "../../lib/userDEK";
 import type {
   ChatMode,
@@ -38,6 +38,8 @@ const SESSION_SELECT = "id,user_id,mode,title,is_archived,created_at,updated_at"
 const MESSAGE_SELECT =
   "id,user_id,session_id,role,content_encrypted,iv,auth_tag,tokens_used,model_used,created_at";
 
+const MAX_HISTORY_MESSAGES = 20;
+
 function decryptChatMessage(row: ChatMessageRow, dek: string) {
   return {
     id: row.id,
@@ -55,6 +57,14 @@ function decryptChatMessage(row: ChatMessageRow, dek: string) {
     modelUsed: row.model_used,
     createdAt: row.created_at
   };
+}
+
+function toContextMode(mode: ChatMode, pinnedEntryId?: string): ContextMode {
+  if (pinnedEntryId || mode === "reflection") {
+    return "reflection";
+  }
+
+  return "general";
 }
 
 export class ChatService {
@@ -147,7 +157,42 @@ export class ChatService {
       throw sessionError;
     }
 
-    const systemContext = await buildSystemContext(userId, input.content);
+    const dek = await getUserDEK(userId);
+    const contextMode = toContextMode(session.mode, input.pinnedEntryId);
+    const contextOptions: Parameters<typeof buildSystemContext>[2] = {
+      mode: contextMode,
+      message: input.content
+    };
+
+    if (input.pinnedEntryId) {
+      contextOptions.pinnedEntryId = input.pinnedEntryId;
+    }
+
+    const systemContext = await buildSystemContext(userId, input.content, contextOptions);
+
+    // Root cause of prior bug: only system + current user message were sent,
+    // so the model had no conversational continuity.
+    const { data: historyRows, error: historyError } = await supabaseAdmin
+      .from("chat_messages")
+      .select(MESSAGE_SELECT)
+      .eq("user_id", userId)
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(MAX_HISTORY_MESSAGES)
+      .returns<ChatMessageRow[]>();
+
+    if (historyError) {
+      throw historyError;
+    }
+
+    const history = (historyRows ?? [])
+      .reverse()
+      .map((row) => decryptChatMessage(row, dek))
+      .filter((message) => message.role === "user" || message.role === "assistant")
+      .map((message) => ({
+        role: message.role as "user" | "assistant",
+        content: message.content
+      }));
 
     response.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -162,8 +207,9 @@ export class ChatService {
       messages: [
         {
           role: "system",
-          content: `${systemContext}\n\nConversation mode: ${session.mode}.`
+          content: systemContext
         },
+        ...history,
         {
           role: "user",
           content: input.content
@@ -177,7 +223,6 @@ export class ChatService {
       response.write(`data: ${JSON.stringify({ delta })}\n\n`);
     }
 
-    const dek = await getUserDEK(userId);
     const userEncrypted = encrypt(input.content, dek);
     const assistantEncrypted = encrypt(assistantContent, dek);
 

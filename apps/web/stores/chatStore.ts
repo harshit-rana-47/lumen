@@ -1,6 +1,15 @@
 import { create } from "zustand";
 
-export type ChatMode = "friend" | "coach" | "therapist" | "mentor" | "devils_advocate" | "future_self";
+export type ChatMode =
+  | "general"
+  | "reflection"
+  | "friend"
+  | "coach"
+  | "therapist"
+  | "mentor"
+  | "devils_advocate"
+  | "hypothetical"
+  | "future_self";
 
 type ChatState = {
   activeMode: ChatMode;
@@ -8,6 +17,6 @@ type ChatState = {
 };
 
 export const useChatStore = create<ChatState>((set) => ({
-  activeMode: "friend",
+  activeMode: "general",
   setActiveMode: (mode) => set({ activeMode: mode })
 }));

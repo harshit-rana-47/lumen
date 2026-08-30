@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../../config/supabase";
 import { embedText } from "../../config/embeddings";
 import { encrypt } from "../../lib/encrypt";
-import { embeddingQueue, memoryQueue } from "../../lib/queue";
+import { writeAuditLog } from "../../lib/audit";
+import { embeddingQueue } from "../../lib/queue";
 import { getUserDEK } from "../../lib/userDEK";
 import {
   decryptOptionalText,
@@ -125,24 +126,17 @@ function toEntry(row: JournalRow, dek: string): JournalEntry {
   };
 }
 
-function requireUser(requestUserId: string | undefined): string {
-  if (!requestUserId) {
-    throw new Error("Authenticated user is required");
-  }
-
-  return requestUserId;
-}
-
 function storageObjectName(fileName: string): string {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-async function insertAuditLog(userId: string, eventType: string, resource?: string): Promise<void> {
-  await supabaseAdmin.from("audit_logs").insert({
-    user_id: userId,
-    event_type: eventType,
-    resource
-  });
+/**
+ * Queue only the embedding job on create/update.
+ * Root cause of double memory extraction: create() previously also enqueued
+ * memory-queue, while embedding.worker already chains memory-queue on success.
+ */
+async function enqueueJournalPipeline(userId: string, entryId: string, reason: string): Promise<void> {
+  await embeddingQueue.add(reason, { userId, entryId });
 }
 
 export class JournalService {
@@ -222,15 +216,8 @@ export class JournalService {
     }
 
     await Promise.all([
-      embeddingQueue.add("journal.created", {
-        userId,
-        entryId: data.id
-      }),
-      memoryQueue.add("journal.created", {
-        userId,
-        entryId: data.id
-      }),
-      insertAuditLog(userId, "journal.create", data.id)
+      enqueueJournalPipeline(userId, data.id, "journal.created"),
+      writeAuditLog({ actorId: userId, action: "journal.create", resource: data.id })
     ]);
 
     return toEntry(data, dek);
@@ -250,7 +237,7 @@ export class JournalService {
       throw error;
     }
 
-    await insertAuditLog(userId, "journal.read", id);
+    await writeAuditLog({ actorId: userId, action: "journal.read", resource: id });
 
     return toEntry(data, dek);
   }
@@ -295,16 +282,7 @@ export class JournalService {
     }
 
     if (input.body) {
-      await Promise.all([
-        embeddingQueue.add("journal.updated", {
-          userId,
-          entryId: id
-        }),
-        memoryQueue.add("journal.updated", {
-          userId,
-          entryId: id
-        })
-      ]);
+      await enqueueJournalPipeline(userId, id, "journal.updated");
     }
 
     return toEntry(data, dek);
@@ -325,7 +303,7 @@ export class JournalService {
       throw error;
     }
 
-    await insertAuditLog(userId, "journal.delete", id);
+    await writeAuditLog({ actorId: userId, action: "journal.delete", resource: id });
 
     return {
       id,

@@ -1,6 +1,9 @@
 import type { ChatMode } from "./chat.schema";
 
-export const chatModes: ChatMode[] = [
+/** Preferred V1 modes. Legacy personality modes remain for backward compatibility. */
+export const chatModes: ChatMode[] = ["general", "reflection"];
+
+export const legacyChatModes: ChatMode[] = [
   "friend",
   "therapist",
   "coach",

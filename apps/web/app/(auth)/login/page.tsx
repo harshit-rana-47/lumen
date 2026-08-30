@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       syncSessionCookies(browserSession);
       await restoreSession();
-      router.replace("/dashboard");
+      router.replace("/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to log in.");
     } finally {

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../../config/supabase";
+import { writeAuditLog } from "../../lib/audit";
 import { generateDEK, wrapDEK } from "../../lib/encrypt";
 import type { LoginInput, LogoutInput, RefreshInput, RegisterInput } from "./auth.schema";
 
@@ -17,18 +18,6 @@ type RegisterResult = {
   };
   profile: PublicUserProfile;
 };
-
-async function writeAuditLog(userId: string, action: string, metadata: Record<string, unknown> = {}) {
-  const { error } = await supabaseAdmin.from("audit_log").insert({
-    user_id: userId,
-    action,
-    metadata
-  });
-
-  if (error) {
-    throw error;
-  }
-}
 
 function stripSensitiveProfileFields(profile: Record<string, unknown>): PublicUserProfile {
   const { encrypted_dek: _encryptedDEK, encrypted_dek_iv: _iv, encrypted_dek_tag: _tag, ...safe } = profile;
@@ -74,14 +63,11 @@ export class AuthService {
       throw profileError;
     }
 
-    try {
-      await writeAuditLog(authUser.id, "auth.register", {
-        email: input.email
-      });
-    } catch (error) {
-      await supabaseAdmin.auth.admin.deleteUser(authUser.id);
-      throw error;
-    }
+    await writeAuditLog({
+      actorId: authUser.id,
+      action: "auth.register",
+      metadata: { email: input.email }
+    });
 
     const user: RegisterResult["user"] = {
       id: authUser.id
@@ -108,7 +94,7 @@ export class AuthService {
     }
 
     if (data.user) {
-      await writeAuditLog(data.user.id, "auth.login");
+      await writeAuditLog({ actorId: data.user.id, action: "auth.login" });
     }
 
     return data;
@@ -124,7 +110,7 @@ export class AuthService {
     }
 
     if (data.user) {
-      await writeAuditLog(data.user.id, "auth.refresh");
+      await writeAuditLog({ actorId: data.user.id, action: "auth.refresh" });
     }
 
     return data;
@@ -139,7 +125,7 @@ export class AuthService {
     }
 
     if (userData.user) {
-      await writeAuditLog(userData.user.id, "auth.logout");
+      await writeAuditLog({ actorId: userData.user.id, action: "auth.logout" });
     }
 
     return { success: true };

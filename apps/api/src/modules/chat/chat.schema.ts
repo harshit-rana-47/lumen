@@ -1,6 +1,13 @@
 import { z } from "zod";
 
+/**
+ * V1 chat modes.
+ * Legacy personality modes remain accepted for existing sessions but new UI
+ * should prefer `general` or `reflection`.
+ */
 export const chatModeSchema = z.enum([
+  "general",
+  "reflection",
   "friend",
   "therapist",
   "coach",
@@ -11,7 +18,7 @@ export const chatModeSchema = z.enum([
 ]);
 
 export const createChatSessionSchema = z.object({
-  mode: chatModeSchema.default("friend")
+  mode: chatModeSchema.default("general")
 });
 
 export const chatSessionIdParamsSchema = z.object({
@@ -24,7 +31,8 @@ export const listChatMessagesQuerySchema = z.object({
 });
 
 export const sendChatMessageSchema = z.object({
-  content: z.string().trim().min(1).max(20_000)
+  content: z.string().trim().min(1).max(20_000),
+  pinnedEntryId: z.string().uuid().optional()
 });
 
 export type ChatMode = z.infer<typeof chatModeSchema>;

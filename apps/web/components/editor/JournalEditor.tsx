@@ -48,26 +48,32 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const lastSaved = useRef<string>("");
+  const initialBodyRef = useRef(initialEntry?.body ?? "");
 
+  /**
+   * Root cause of prior bug: initialConfig depended on `body`, so LexicalComposer
+   * remounted/reinitialized as the user typed. Keep namespace + seed text stable.
+   */
   const initialConfig = useMemo(
     () => ({
-      namespace: `journal-${entryId ?? "new"}`,
-      onError(error: Error) {
-        throw error;
+      namespace: `journal-${initialEntry?.id ?? "new"}`,
+      onError(caught: Error) {
+        console.error(caught);
       },
       editorState: () => {
-        if (!body) {
+        const seed = initialBodyRef.current;
+        if (!seed) {
           return;
         }
 
         const root = $getRoot();
         root.clear();
         const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(body));
+        paragraph.append($createTextNode(seed));
         root.append(paragraph);
       }
     }),
-    [body, entryId]
+    [initialEntry?.id]
   );
 
   const wordCount = useMemo(() => body.trim().split(/\s+/).filter(Boolean).length, [body]);
@@ -127,6 +133,8 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
 
   function onEditorChange(editorState: EditorState) {
     editorState.read(() => {
+      // Plain-text extraction for V1 storage/embeddings.
+      // Rich Lexical JSON serialization is deferred until editor redesign.
       setBody($getRoot().getTextContent());
       setStatus("idle");
     });
