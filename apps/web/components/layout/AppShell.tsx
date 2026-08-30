@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { AppBottomNav } from "./AppBottomNav";
 import { AppSidebar } from "./AppSidebar";
@@ -8,6 +8,7 @@ import { AppTopBar } from "./AppTopBar";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { ThinkingIndicator } from "@/components/motion";
 import { useAuthStore } from "@/stores/authStore";
+import { cn } from "@/lib/cn";
 import "@/lib/motion/gsap";
 
 type AppShellProps = {
@@ -16,12 +17,15 @@ type AppShellProps = {
 
 /**
  * Authenticated Lumen shell — V1 nav: Today · Journal · Chat · You.
+ * Journal uses a full-bleed writing layout (no max-width chrome).
  */
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const initialized = useAuthStore((state) => state.initialized);
   const session = useAuthStore((state) => state.session);
   const restoreSession = useAuthStore((state) => state.restoreSession);
+  const isJournal = pathname.startsWith("/journal");
 
   useEffect(() => {
     void restoreSession();
@@ -48,10 +52,17 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-dvh bg-background md:flex">
       <AppSidebar />
-      <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
         <AppTopBar />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
-          <PageTransition>{children}</PageTransition>
+        <main
+          className={cn(
+            "flex w-full min-h-0 flex-1 flex-col",
+            isJournal
+              ? "max-w-none px-0 py-0"
+              : "mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8"
+          )}
+        >
+          {isJournal ? children : <PageTransition>{children}</PageTransition>}
         </main>
       </div>
       <AppBottomNav />

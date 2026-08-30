@@ -58,9 +58,11 @@ Out of scope for V1 (deferred): habits tracker, voice/image entries, collaborati
 
 ## Current product UI (actual codebase)
 
-Nav in `Sidebar.tsx` / `MobileNav.tsx` still includes: Today, Journal, Chat, **Memory**, **Insights**, **Timeline**, **Goals**, Settings.
+V1 nav **Today · Journal · Chat · You** is live (`AppShell` / `lib/nav.ts`). Deferred destinations (`/memory`, `/insights`, `/goals`, `/timeline`) remain routable if bookmarked.
 
-These extra destinations conflict with approved V1 IA and will be addressed in the **frontend redesign** phase — not before backend cutover is stable.
+Journal Slice 3: writing-first workspace + Dear Diary chrome implemented. Reflect panel still not built (entry button stub only).
+
+Today / Chat / You / Landing still use transitional page UIs pending later slices.
 
 ## Visual + motion identity (Phase 2)
 

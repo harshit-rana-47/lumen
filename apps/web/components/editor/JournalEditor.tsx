@@ -2,22 +2,48 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { $createParagraphNode, $createTextNode, $getRoot, EditorState } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, type EditorState } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { Save } from "lucide-react";
-import { createJournalEntry, type JournalDraft, type JournalEntry, updateJournalEntry } from "@/hooks/useJournal";
-import { EditorToolbar } from "./EditorToolbar";
-import { MoodSlider } from "./MoodSlider";
+import { ChevronDown, Trash2 } from "lucide-react";
+import {
+  createJournalEntry,
+  deleteJournalEntry,
+  type JournalDraft,
+  type JournalEntry,
+  updateJournalEntry
+} from "@/hooks/useJournal";
+import { DearDiaryHeading } from "@/components/journal/DearDiaryHeading";
+import { ReflectEntryButton } from "@/components/journal/ReflectEntryButton";
+import { EditorToolbar } from "@/components/editor/EditorToolbar";
+import { MoodSlider } from "@/components/editor/MoodSlider";
+import { FadeReveal } from "@/components/motion/FadeReveal";
+import { SaveIndicator } from "@/components/motion/SaveIndicator";
+import { usePrefersReducedMotion } from "@/lib/motion/usePrefersReducedMotion";
+import { cn } from "@/lib/cn";
 
-const journalTypes = ["free", "guided", "gratitude", "dream", "travel", "learning", "relationship", "work", "health"];
+const AUTOSAVE_MS = 2_500;
+
+const journalTypes = [
+  "free",
+  "guided",
+  "gratitude",
+  "dream",
+  "travel",
+  "learning",
+  "relationship",
+  "work",
+  "health"
+];
 
 type JournalEditorProps = {
   initialEntry?: JournalEntry;
+  /** Called after create/update/delete so the workspace list can refresh. */
+  onPersisted?: () => void;
 };
 
 function today(): string {
@@ -35,8 +61,9 @@ function parseTags(value: string): string[] {
     .filter(Boolean);
 }
 
-export function JournalEditor({ initialEntry }: JournalEditorProps) {
+export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps) {
   const router = useRouter();
+  const reducedMotion = usePrefersReducedMotion();
   const [entryId, setEntryId] = useState(initialEntry?.id ?? null);
   const [title, setTitle] = useState(initialEntry?.title ?? "");
   const [body, setBody] = useState(initialEntry?.body ?? "");
@@ -47,12 +74,16 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
   const [tags, setTags] = useState(tagsToString(initialEntry?.tags ?? []));
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [editorFocused, setEditorFocused] = useState(false);
   const lastSaved = useRef<string>("");
   const initialBodyRef = useRef(initialEntry?.body ?? "");
+  const seededSignature = useRef(false);
 
   /**
-   * Root cause of prior bug: initialConfig depended on `body`, so LexicalComposer
-   * remounted/reinitialized as the user typed. Keep namespace + seed text stable.
+   * Keep LexicalComposer config stable — must not depend on live `body`
+   * or the editor remounts on every keystroke.
    */
   const initialConfig = useMemo(
     () => ({
@@ -76,7 +107,10 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
     [initialEntry?.id]
   );
 
-  const wordCount = useMemo(() => body.trim().split(/\s+/).filter(Boolean).length, [body]);
+  const wordCount = useMemo(
+    () => body.trim().split(/\s+/).filter(Boolean).length,
+    [body]
+  );
 
   const draft = useMemo<JournalDraft>(() => {
     const nextDraft: JournalDraft = {
@@ -88,17 +122,25 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
       entryDate
     };
     const nextTitle = title.trim();
-
     if (nextTitle) {
       nextDraft.title = nextTitle;
     }
-
     return nextDraft;
   }, [body, energyScore, entryDate, moodScore, tags, title, type]);
 
-  const signature = JSON.stringify(draft);
+  const signature = useMemo(() => JSON.stringify(draft), [draft]);
 
-  const save = useCallback(async () => {
+  useEffect(() => {
+    if (seededSignature.current) {
+      return;
+    }
+    if (initialEntry?.body?.trim()) {
+      lastSaved.current = signature;
+    }
+    seededSignature.current = true;
+  }, [initialEntry?.body, signature]);
+
+  const persist = useCallback(async () => {
     if (signature === lastSaved.current || !body.trim()) {
       return;
     }
@@ -112,140 +154,243 @@ export function JournalEditor({ initialEntry }: JournalEditorProps) {
       } else {
         const created = await createJournalEntry(draft);
         setEntryId(created.id);
+        lastSaved.current = signature;
+        setStatus("saved");
+        onPersisted?.();
         router.replace(`/journal/${created.id}`);
+        return;
       }
 
       lastSaved.current = signature;
       setStatus("saved");
+      onPersisted?.();
     } catch (caught) {
       setStatus("error");
       setError(caught instanceof Error ? caught.message : "Unable to save entry.");
     }
-  }, [body, draft, entryId, router, signature]);
+  }, [body, draft, entryId, onPersisted, router, signature]);
 
   useEffect(() => {
+    if (signature === lastSaved.current || !body.trim()) {
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
-      void save();
-    }, 10_000);
+      void persist();
+    }, AUTOSAVE_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [save]);
+  }, [body, persist, signature]);
 
-  function onEditorChange(editorState: EditorState) {
+  const onEditorChange = useCallback((editorState: EditorState) => {
     editorState.read(() => {
       // Plain-text extraction for V1 storage/embeddings.
-      // Rich Lexical JSON serialization is deferred until editor redesign.
+      // "Dear Diary," is never part of Lexical state.
       setBody($getRoot().getTextContent());
-      setStatus("idle");
+      setStatus((current) => (current === "saved" ? "idle" : current === "error" ? current : "idle"));
     });
+  }, []);
+
+  async function handleDelete() {
+    if (!entryId || deleting) {
+      return;
+    }
+    const confirmed = window.confirm("Delete this entry? You can restore it later from support if needed.");
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteJournalEntry(entryId);
+      onPersisted?.();
+      router.replace("/journal");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to delete entry.");
+      setDeleting(false);
+    }
   }
 
-  return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="min-w-0 rounded border border-[hsl(var(--border))] bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <input
-            className="min-w-0 flex-1 border-0 bg-transparent text-2xl font-semibold outline-none"
-            value={title}
-            onChange={(event) => {
-              setTitle(event.target.value);
-              setStatus("idle");
-            }}
-            placeholder="Untitled"
-          />
-          <button
-            type="button"
-            onClick={() => void save()}
-            className="inline-flex h-9 items-center gap-2 rounded bg-[hsl(var(--primary))] px-3 text-sm font-medium text-white"
-          >
-            <Save className="h-4 w-4" />
-            Save
-          </button>
-        </div>
+  const surfaceReveal = !reducedMotion;
 
-        <div className="mt-4">
-          <LexicalComposer initialConfig={initialConfig}>
+  return (
+    <div
+      className={cn(
+        "mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 pb-10 pt-4 sm:px-6 sm:pt-6 lg:px-8",
+        surfaceReveal && "animate-journal-enter"
+      )}
+    >
+      <FadeReveal duration="transition" y={10} className="shrink-0">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <input
+              className="w-full border-0 bg-transparent font-display text-lg font-medium tracking-tight text-foreground/80 outline-none placeholder:text-foreground/35 sm:text-xl"
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setStatus("idle");
+              }}
+              placeholder="Optional title"
+              aria-label="Entry title"
+            />
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <SaveIndicator status={status} className="min-w-[4.5rem] justify-end text-foreground/55" />
+            <ReflectEntryButton disabled={!entryId} />
+          </div>
+        </div>
+      </FadeReveal>
+
+      <FadeReveal duration="transition" delay={0.05} y={8} className="mt-6 shrink-0 sm:mt-8">
+        <DearDiaryHeading />
+        <span className="sr-only">Dear Diary heading. The editable journal begins below.</span>
+      </FadeReveal>
+
+      <div
+        className={cn(
+          "mt-4 flex min-h-0 flex-1 flex-col rounded-2xl transition-[box-shadow,background-color] duration-[var(--motion-interaction)] ease-[var(--ease-standard)]",
+          editorFocused
+            ? "bg-[hsl(var(--surface))]/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.12)]"
+            : "bg-transparent"
+        )}
+      >
+        <LexicalComposer initialConfig={initialConfig}>
+          <div className="mb-2 opacity-90 transition-opacity duration-[var(--motion-interaction)] focus-within:opacity-100">
             <EditorToolbar />
+          </div>
+          <div className="relative">
             <RichTextPlugin
               contentEditable={
-                <ContentEditable className="min-h-[420px] resize-none rounded border border-[hsl(var(--border))] p-4 text-base leading-7 outline-none" />
+                <ContentEditable
+                  aria-label="Journal entry"
+                  className="min-h-[min(58dvh,32rem)] resize-none bg-transparent px-1 py-2 text-base leading-8 text-foreground outline-none sm:min-h-[min(62dvh,36rem)] sm:text-[1.0625rem] sm:leading-8"
+                  onFocus={() => setEditorFocused(true)}
+                  onBlur={() => setEditorFocused(false)}
+                />
               }
-              placeholder={<div className="pointer-events-none -mt-[430px] px-4 py-4 text-slate-400">Start writing...</div>}
+              placeholder={
+                <div className="pointer-events-none absolute left-1 top-2 text-base leading-8 text-foreground/35 sm:text-[1.0625rem]">
+                  Today I…
+                </div>
+              }
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <HistoryPlugin />
-            <OnChangePlugin onChange={onEditorChange} />
-          </LexicalComposer>
-        </div>
+          </div>
+          <HistoryPlugin />
+          <OnChangePlugin onChange={onEditorChange} ignoreSelectionChange />
+        </LexicalComposer>
+      </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-          <span>{wordCount} words</span>
-          <span>
-            {status === "saving" ? "Saving..." : status === "saved" ? "Saved" : status === "error" ? "Save failed" : "Unsaved"}
-          </span>
-        </div>
-        {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
-      </section>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-foreground/50">
+        <span>{wordCount} words</span>
+        <button
+          type="button"
+          onClick={() => void persist()}
+          className="rounded-lg px-2 py-1 text-sm font-medium text-foreground/70 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35"
+        >
+          Save now
+        </button>
+      </div>
 
-      <aside className="space-y-4 rounded border border-[hsl(var(--border))] bg-white p-4 lg:sticky lg:top-20 lg:self-start">
-        <label className="block text-sm font-medium">
-          Type
-          <select
-            className="mt-2 h-10 w-full rounded border border-[hsl(var(--border))] bg-white px-3"
-            value={type}
-            onChange={(event) => {
-              setType(event.target.value);
-              setStatus("idle");
-            }}
-          >
-            {journalTypes.map((journalType) => (
-              <option key={journalType} value={journalType}>
-                {journalType}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm font-medium">
-          Date
-          <input
-            className="mt-2 h-10 w-full rounded border border-[hsl(var(--border))] bg-white px-3"
-            type="date"
-            value={entryDate}
-            onChange={(event) => {
-              setEntryDate(event.target.value);
-              setStatus("idle");
-            }}
+      {error ? (
+        <p className="mt-2 text-sm text-[hsl(var(--accent))]" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="mt-6 border-t border-border/50 pt-4">
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((open) => !open)}
+          className="inline-flex items-center gap-2 text-sm font-medium text-foreground/65 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35"
+          aria-expanded={detailsOpen}
+        >
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform duration-[var(--motion-interaction)]",
+              detailsOpen && "rotate-180"
+            )}
+            aria-hidden
           />
-        </label>
-        <MoodSlider
-          label="Mood"
-          value={moodScore}
-          onChange={(value) => {
-            setMoodScore(value);
-            setStatus("idle");
-          }}
-        />
-        <MoodSlider
-          label="Energy"
-          value={energyScore}
-          onChange={(value) => {
-            setEnergyScore(value);
-            setStatus("idle");
-          }}
-        />
-        <label className="block text-sm font-medium">
-          Tags
-          <input
-            className="mt-2 h-10 w-full rounded border border-[hsl(var(--border))] bg-white px-3"
-            value={tags}
-            onChange={(event) => {
-              setTags(event.target.value);
-              setStatus("idle");
-            }}
-            placeholder="reflection, work, family"
-          />
-        </label>
-      </aside>
+          Details
+        </button>
+
+        {detailsOpen ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm font-medium text-foreground/80">
+              Type
+              <select
+                className="mt-2 h-10 w-full rounded-xl border border-border/70 bg-background px-3 outline-none focus:ring-2 focus:ring-primary/25"
+                value={type}
+                onChange={(event) => {
+                  setType(event.target.value);
+                  setStatus("idle");
+                }}
+              >
+                {journalTypes.map((journalType) => (
+                  <option key={journalType} value={journalType}>
+                    {journalType}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-foreground/80">
+              Date
+              <input
+                className="mt-2 h-10 w-full rounded-xl border border-border/70 bg-background px-3 outline-none focus:ring-2 focus:ring-primary/25"
+                type="date"
+                value={entryDate}
+                onChange={(event) => {
+                  setEntryDate(event.target.value);
+                  setStatus("idle");
+                }}
+              />
+            </label>
+            <MoodSlider
+              label="Mood"
+              value={moodScore}
+              onChange={(value) => {
+                setMoodScore(value);
+                setStatus("idle");
+              }}
+            />
+            <MoodSlider
+              label="Energy"
+              value={energyScore}
+              onChange={(value) => {
+                setEnergyScore(value);
+                setStatus("idle");
+              }}
+            />
+            <label className="block text-sm font-medium text-foreground/80 sm:col-span-2">
+              Tags
+              <input
+                className="mt-2 h-10 w-full rounded-xl border border-border/70 bg-background px-3 outline-none focus:ring-2 focus:ring-primary/25"
+                value={tags}
+                onChange={(event) => {
+                  setTags(event.target.value);
+                  setStatus("idle");
+                }}
+                placeholder="reflection, work, family"
+              />
+            </label>
+            {entryId ? (
+              <div className="sm:col-span-2">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/70 px-3 text-sm font-medium text-[hsl(var(--accent))] outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary/35 disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  {deleting ? "Deleting…" : "Delete entry"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -1,16 +1,29 @@
 # TESTING.md
 
-Last updated: 2026-08-30 (Phase 1.75)
+Last updated: 2026-08-30 (Phase 2 Slice 3)
 
-## Frontend (Phase 2 Slice 2)
+## Frontend (Phase 2 Slice 3 — Journal)
 
 | Check | Result |
 |---|---|
 | Web typecheck | **PASS** |
 | API Jest | **18/18 PASS** |
-| Manual nav matrix | Code-complete; browser visual QA recommended on device |
+| Manual journal matrix | Code-complete; browser visual QA recommended (live DB may block save E2E) |
 
-Shell verification checklist:
+Journal verification checklist:
+
+- [ ] Create entry → Dear Diary visible → type immediately  
+- [ ] Autosave (~2.5s) → Saving… → Saved; refresh retains body without “Dear Diary,”  
+- [ ] Reopen / switch entries; list selection indicator  
+- [ ] Delete entry → returns to journal  
+- [ ] Empty state (no entries)  
+- [ ] Failed load / failed save messaging  
+- [ ] Mobile 375 / 390 / 430 writing + Entries drawer  
+- [ ] Keyboard editing + toolbar buttons labeled  
+- [ ] `prefers-reduced-motion` (enter/drawer animations off)  
+- [ ] Reflect button present; panel not opened  
+
+Shell verification checklist (Slice 2):
 
 - [ ] Unauth `/` landing  
 - [ ] Auth `/` → `/today`  

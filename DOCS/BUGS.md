@@ -1,6 +1,6 @@
 # BUGS.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (Phase 2 Slice 3)
 
 Structured bug register. **Do not delete** historical entries after fix.
 
@@ -174,6 +174,8 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-017 | High | Fixed (Phase 1.5) | AI memory upsert could overwrite `user_edited` corrections — now skipped; confidence gate added |
 | BUG-018 | Medium | Open | Account delete removes DB rows but does not purge Storage objects (`journal-media`, `user-exports`) |
 | BUG-019 | Low | Open | `stopPgBoss()` exists but process SIGTERM/SIGINT hooks are not wired for graceful worker/API shutdown |
+| BUG-021 | Medium | Fixed (Slice 3) | Journal autosave ran on a 10s timer tied to `save` identity; felt sluggish and easy to leave unsaved — now 2.5s idle debounce on draft signature |
+| BUG-022 | Low | Open | Journal still stores Lexical as plain text only — rich formatting commands affect display until reload loses structure |
 
 ### BUG-012 (Phase 1.75 reconfirmation)
 

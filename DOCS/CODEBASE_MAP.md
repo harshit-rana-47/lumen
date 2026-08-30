@@ -1,6 +1,6 @@
 # CODEBASE_MAP.md
 
-Last updated: 2026-08-30 (Phase 1.5)
+Last updated: 2026-08-30 (Phase 2 Slice 3)
 
 ## Monorepo
 
@@ -22,7 +22,7 @@ Lumen/
 | App shell / V1 nav | `AppShell`, Sidebar/BottomNav/TopBar | `lib/nav.ts` | — | — | — | typecheck |
 | Auth | `(auth)/*` | `authStore` | `modules/auth` | Auth + `users` | — | scaffold |
 | Today | `(dashboard)/today` | page hooks | journal + daily-log | journals/logs | — | — |
-| Journal | `JournalEditor`, journal pages | `useJournal` | `modules/journal` | `journal_entries` | embed→memory | journal + encrypt |
+| Journal | `JournalWorkspace`, `JournalEditor`, Dear Diary | `useJournal` | `modules/journal` | `journal_entries` | embed→memory | journal + encrypt |
 | Chat | chat pages | `useChat` | `modules/chat` + context | chat tables | Groq | context tests |
 | You | `(dashboard)/you` | — | `modules/user` | profile/purge | — | deletion inventory |
 
@@ -32,6 +32,14 @@ Lumen/
 |---|---|
 | V1 nav config | `apps/web/lib/nav.ts` |
 | App shell | `apps/web/components/layout/AppShell.tsx` |
+| Journal workspace | `apps/web/components/journal/JournalWorkspace.tsx` |
+| Journal list | `apps/web/components/journal/JournalEntryList.tsx` |
+| Dear Diary chrome | `apps/web/components/journal/DearDiaryHeading.tsx`, `lib/dearDiary.ts` |
+| Reflect entry (stub) | `apps/web/components/journal/ReflectEntryButton.tsx` |
+| Journal editor | `apps/web/components/editor/JournalEditor.tsx` |
+| Editor toolbar | `apps/web/components/editor/EditorToolbar.tsx` |
+| Journal hooks | `apps/web/hooks/useJournal.ts` |
+| Journal routes | `apps/web/app/(dashboard)/journal/**` |
 | Page transitions | `apps/web/components/motion/PageTransition.tsx` |
 | Motion tokens | `apps/web/lib/motion/tokens.ts` |
 | Motion primitives | `apps/web/components/motion/*` |

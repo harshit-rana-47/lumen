@@ -1,92 +1,65 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, Plus, Search } from "lucide-react";
-import { JournalCalendar } from "@/components/editor/JournalCalendar";
-import { useJournalList } from "@/hooks/useJournal";
+import { JournalEmptyState } from "@/components/journal/JournalEmptyState";
+import { FadeReveal } from "@/components/motion/FadeReveal";
+import { ThinkingIndicator } from "@/components/motion";
+import { useJournalWorkspace } from "@/components/journal/JournalWorkspace";
 
 export default function JournalPage() {
-  const { entries, filteredEntries, loading, error, search, setSearch } = useJournalList();
+  const { entries, loading, error } = useJournalWorkspace();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60dvh] items-center justify-center">
+        <ThinkingIndicator label="Opening your journal" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[60dvh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-sm text-[hsl(var(--accent))]" role="alert">
+          {error}
+        </p>
+        <p className="mt-2 max-w-sm text-sm text-foreground/55">
+          Check your connection and try again from the entries list.
+        </p>
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return <JournalEmptyState />;
+  }
+
+  const latest = entries[0];
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Journal</h1>
-          <p className="mt-1 text-sm text-slate-500">{entries.length} entries</p>
-        </div>
+    <FadeReveal duration="transition" y={12} className="flex min-h-[60dvh] flex-col items-center justify-center px-6 text-center">
+      <p className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        Dear Diary,
+      </p>
+      <p className="mt-4 max-w-md text-base leading-relaxed text-foreground/65">
+        Choose an entry from the list, or begin a fresh page. Your private writing space is ready.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <Link
           href="/journal/new"
-          className="inline-flex h-10 items-center gap-2 rounded bg-[hsl(var(--primary))] px-4 text-sm font-medium text-white"
+          className="inline-flex h-12 items-center rounded-xl bg-primary px-6 text-sm font-semibold text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <Plus className="h-4 w-4" />
-          New
+          New entry
         </Link>
+        {latest ? (
+          <Link
+            href={`/journal/${latest.id}`}
+            className="inline-flex h-12 items-center rounded-xl border border-border/70 bg-[hsl(var(--surface))] px-6 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary/35"
+          >
+            Continue last entry
+          </Link>
+        ) : null}
       </div>
-
-      <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="space-y-4">
-          <JournalCalendar entries={entries} />
-          <section className="rounded border border-[hsl(var(--border))] bg-white p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <CalendarDays className="h-4 w-4 text-[hsl(var(--primary))]" />
-              This month
-            </div>
-            <p className="mt-2 text-sm text-slate-500">
-              {entries.filter((entry) => entry.entryDate.slice(0, 7) === new Date().toISOString().slice(0, 7)).length}{" "}
-              entries written.
-            </p>
-          </section>
-        </div>
-
-        <section className="min-w-0 rounded border border-[hsl(var(--border))] bg-white">
-          <div className="border-b border-[hsl(var(--border))] p-4">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                className="h-10 w-full rounded border border-[hsl(var(--border))] bg-white pl-9 pr-3 text-sm"
-                placeholder="Search titles or tags"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-          </div>
-
-          {loading ? <p className="p-4 text-sm text-slate-500">Loading entries</p> : null}
-          {error ? <p className="p-4 text-sm text-red-600">{error}</p> : null}
-          {!loading && filteredEntries.length === 0 ? (
-            <p className="p-4 text-sm text-slate-500">No journal entries found.</p>
-          ) : null}
-
-          <div className="divide-y divide-[hsl(var(--border))]">
-            {filteredEntries.map((entry) => (
-              <Link key={entry.id} href={`/journal/${entry.id}`} className="block p-4 hover:bg-[hsl(var(--muted))]">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold">{entry.title ?? "Untitled"}</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {entry.entryDate} · {entry.wordCount ?? 0} words · {entry.type}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 text-xs text-slate-500">
-                    {entry.moodScore ? <span>Mood {entry.moodScore}</span> : null}
-                    {entry.energyScore ? <span>Energy {entry.energyScore}</span> : null}
-                  </div>
-                </div>
-                {entry.tags.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {entry.tags.map((tag) => (
-                      <span key={tag} className="rounded bg-[hsl(var(--muted))] px-2 py-1 text-xs text-slate-600">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </Link>
-            ))}
-          </div>
-        </section>
-      </div>
-    </div>
+    </FadeReveal>
   );
 }

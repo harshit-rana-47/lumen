@@ -263,7 +263,7 @@ WOW comes from: **typography + composition + motion + interaction + product stor
 | `/` | Public | Landing (minimal; cinematic expansion later). Auth users redirected to `/today` |
 | `/login`, `/register` | Public | Auth forms; session → `/today` (or `redirectTo`) |
 | `/today` | Auth | Today home |
-| `/journal`, `/journal/*` | Auth | Journal |
+| `/journal`, `/journal/*` | Auth | Journal workspace (list + writing surface) |
 | `/chat`, `/chat/*` | Auth | Chat |
 | `/you` | Auth | Account / settings surface |
 | `/settings` | Auth | Redirect → `/you` |
@@ -273,6 +273,7 @@ WOW comes from: **typography + composition + motion + interaction + product stor
 ### Shell architecture
 
 - `AppShell` — auth gate + desktop sidebar + top bar + mobile bottom nav + `PageTransition`
+- Journal paths: full-bleed main (`max-w-none`), no `PageTransition` wrapper (workspace owns open/enter motion)
 - `AppSidebar` — desktop persistent nav with **moving active pill** (`transform`/`height`)
 - `AppBottomNav` — intentional mobile bottom nav (4 items, safe-area, ≥44px targets)
 - `AppTopBar` — section label (desktop), brand (mobile), account → `/you`
@@ -280,7 +281,7 @@ WOW comes from: **typography + composition + motion + interaction + product stor
 
 ### Page transitions
 
-`PageTransition` wraps authenticated page content: short opacity + subtle Y on pathname change; respects reduced motion; cleans up via `useGSAP`.
+`PageTransition` wraps non-journal authenticated content: short opacity + subtle Y on pathname change; respects reduced motion; cleans up via `useGSAP`.
 
 ### Typography
 
@@ -291,11 +292,60 @@ WOW comes from: **typography + composition + motion + interaction + product stor
 
 PageTransition, ThinkingIndicator (shell loading), CSS token transitions for active indicator / press.
 
+---
+
+## Journal writing experience (Phase 2 Slice 3 — implemented)
+
+### Architecture
+
+| Piece | Role |
+|---|---|
+| `journal/layout.tsx` → `JournalWorkspace` | List + writing shell; shared list state via context |
+| `JournalEntryList` | Browse/search/select; desktop sidebar; mobile drawer |
+| `JournalEditor` | Lexical writing surface + metadata accordion + autosave |
+| `DearDiaryHeading` | Non-editable chrome above content |
+| `ReflectEntryButton` | Visual Reflect entry point only (panel = next slice) |
+| `lib/dearDiary.ts` | Canonical label constant |
+
+### Dear Diary
+
+- Always visible when writing / on empty invite states
+- `aria-hidden` on decorative heading + sr-only cue that editing starts below
+- **Never** in Lexical state, API body, embeddings, or AI context
+
+### Editor behavior
+
+- Stable `initialConfig` (namespace + seed body via ref) — no remount on type
+- Plain-text body via `$getRoot().getTextContent()` (rich Lexical JSON still deferred)
+- Toolbar: Bold / Italic / Underline only (working Lexical format commands)
+- Focus: subtle surface elevation; typing text does not animate
+- Details (type/mood/energy/tags/date/delete) collapsed by default
+
+### Autosave
+
+- Debounce **2500ms** after draft signature changes (was 10s)
+- Skip empty body; skip if signature matches `lastSaved`
+- Manual “Save now”; create then `router.replace(/journal/:id)`
+- `SaveIndicator` reserves layout space (idle opacity 0 — no jump)
+
+### List ↔ editor
+
+- Desktop: ~280–288px list + dominant writing column (`max-w-3xl` prose)
+- Mobile: writing-first; Entries drawer + New in compact bar
+- Open/create: CSS `animate-journal-enter` + FadeReveal Dear Diary (reduced-motion safe)
+
+### Performance rules (journal)
+
+- No GSAP timeline inside the editor while typing
+- `OnChangePlugin` with `ignoreSelectionChange`
+- Autosave not per-keystroke
+- Prefer transform/opacity for list hover / drawer
+
 | Item | Status |
 |---|---|
 | Motion tokens + primitives scaffold | **Partial** |
 | V1 nav shell + page transitions | **Implemented** |
-| Dear Diary chrome | Planned |
+| Journal + Dear Diary chrome | **Implemented** |
 | Reflect panel choreography | Planned |
 | Landing cinematic | Planned (minimal landing exists) |
-| Journal / Chat / Today / You redesign | Planned |
+| Today / Chat / You redesign | Planned |

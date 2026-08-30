@@ -114,3 +114,8 @@ export async function updateJournalEntry(id: string, draft: Partial<JournalDraft
   const response = await api.put<ApiEnvelope<JournalEntry>>(`/journal/${id}`, draft);
   return response.data.data;
 }
+
+export async function deleteJournalEntry(id: string): Promise<{ id: string; deleted: true }> {
+  const response = await api.delete<ApiEnvelope<{ id: string; deleted: true }>>(`/journal/${id}`);
+  return response.data.data;
+}

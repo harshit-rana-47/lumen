@@ -16,11 +16,12 @@ Baseline, cutover, verification (live DB still env-blocked).
 
 - Slice 1: Motion tokens/primitives — **done**  
 - Slice 2: V1 navigation shell + page transitions — **done**  
-- Next: Journal + Dear Diary + Reflect (not started)  
+- Slice 3: Journal writing surface + Dear Diary chrome — **done** (Reflect button stub only)  
+- Next: Reflect panel choreography  
 
 ## NEXT
 
-Phase 2 Slice 3: Journal writing surface, Dear Diary chrome, Reflect panel.
+Phase 2 Slice 4: Reflect panel + journal entry wiring (backend reflection context already exists).
 
 ## BLOCKED
 

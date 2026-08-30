@@ -1,6 +1,6 @@
 # CHANGES.md
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (Phase 2 Slice 3)
 
 Chronological implementation history. Concise.
 
@@ -127,3 +127,13 @@ Chronological implementation history. Concise.
 - **Why:** Product shell + motion language before Journal/Reflect slices  
 - **Files:** `components/layout/App*`, `lib/nav.ts`, `middleware.ts`, `app/page.tsx`, `today/`, `you/`, fonts  
 - **Tests:** web typecheck PASS; API Jest 18/18  
+
+---
+
+### Phase 2 Slice 3 — Journal writing experience + Dear Diary
+
+- **Change:** Rebuild journal as writing-first workspace; permanent Dear Diary chrome; list sidebar/drawer; Lexical editor dominance; 2.5s autosave + SaveIndicator; Reflect button stub only  
+- **Why:** Journal is the primary Lumen experience — private writing, not a dashboard  
+- **Files:** `components/journal/*`, `JournalEditor`, `EditorToolbar`, `journal/**` routes, `AppShell` full-bleed journal, `useJournal` delete helper, DOCS  
+- **Tests:** web typecheck PASS; API Jest 18/18  
+- **Not included:** Reflect panel / AI Reflect wiring  

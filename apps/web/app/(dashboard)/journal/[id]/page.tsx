@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { JournalEditor } from "@/components/editor/JournalEditor";
+import { useJournalWorkspace } from "@/components/journal/JournalWorkspace";
+import { ThinkingIndicator } from "@/components/motion";
 import { getJournalEntry, type JournalEntry } from "@/hooks/useJournal";
+import Link from "next/link";
 
 type JournalEntryPageProps = {
   params: {
@@ -11,11 +14,16 @@ type JournalEntryPageProps = {
 };
 
 export default function JournalEntryPage({ params }: JournalEntryPageProps) {
+  const { reload } = useJournalWorkspace();
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setEntry(null);
 
     async function load() {
       try {
@@ -27,6 +35,10 @@ export default function JournalEntryPage({ params }: JournalEntryPageProps) {
         if (!cancelled) {
           setError(caught instanceof Error ? caught.message : "Unable to load entry.");
         }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -37,21 +49,33 @@ export default function JournalEntryPage({ params }: JournalEntryPageProps) {
     };
   }, [params.id]);
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[60dvh] items-center justify-center">
+        <ThinkingIndicator label="Opening this page" />
+      </div>
+    );
+  }
+
   if (error) {
-    return <p className="text-sm text-red-600">{error}</p>;
+    return (
+      <div className="flex min-h-[60dvh] flex-col items-center justify-center px-6 text-center">
+        <p className="text-sm text-[hsl(var(--accent))]" role="alert">
+          {error}
+        </p>
+        <Link
+          href="/journal"
+          className="mt-4 text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-primary/35"
+        >
+          Back to journal
+        </Link>
+      </div>
+    );
   }
 
   if (!entry) {
-    return <p className="text-sm text-slate-500">Loading entry</p>;
+    return null;
   }
 
-  return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">Edit entry</h1>
-        <p className="mt-1 text-sm text-slate-500">Autosaves every 10 seconds after changes.</p>
-      </div>
-      <JournalEditor initialEntry={entry} />
-    </div>
-  );
+  return <JournalEditor key={entry.id} initialEntry={entry} onPersisted={() => void reload()} />;
 }

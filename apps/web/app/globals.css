@@ -65,6 +65,36 @@ body {
   }
 }
 
+@keyframes journal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes journal-drawer-in {
+  from {
+    opacity: 0.85;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-journal-enter {
+  animation: journal-enter var(--motion-transition) var(--ease-standard) both;
+}
+
+.animate-journal-drawer {
+  animation: journal-drawer-in var(--motion-interaction) var(--ease-standard) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lumen-thinking-dots span {
     animation: none;
@@ -73,5 +103,10 @@ body {
 
   .lumen-press:active {
     transform: none;
+  }
+
+  .animate-journal-enter,
+  .animate-journal-drawer {
+    animation: none;
   }
 }

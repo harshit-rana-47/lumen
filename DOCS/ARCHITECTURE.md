@@ -56,7 +56,8 @@ BullMQ, Redis, and Neo4j are **removed**.
 | User-scoped DB client | **partial** | Attached on auth; used for journal list/get |
 | Service-role workers/admin | **implemented** | Required for DEK, purge, jobs |
 | Next server actions flatten | **planned** | See remaining migration below |
-| Dear Diary / Reflect UI | **planned** | |
+| Dear Diary chrome | **implemented** | UI-only; not stored |
+| Reflect panel UI | **planned** | Entry button stub in journal |
 | Graph viz / Timeline / Habits | **deferred** | |
 
 ---

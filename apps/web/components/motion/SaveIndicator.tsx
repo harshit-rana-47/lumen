@@ -8,25 +8,29 @@ type SaveIndicatorProps = {
 };
 
 export function SaveIndicator({ status, className }: SaveIndicatorProps) {
-  if (status === "idle") {
-    return null;
-  }
-
   const label =
-    status === "saving" ? "Saving…" : status === "saved" ? "Saved" : "Couldn’t save";
+    status === "saving"
+      ? "Saving…"
+      : status === "saved"
+        ? "Saved"
+        : status === "error"
+          ? "Couldn’t save"
+          : "";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center text-xs tracking-wide transition-opacity duration-[var(--motion-interaction)] ease-[var(--ease-standard)]",
+        "inline-flex min-h-[1rem] min-w-[4.5rem] items-center justify-end text-xs tracking-wide text-foreground/55 transition-opacity duration-[var(--motion-interaction)] ease-[var(--ease-standard)]",
+        status === "idle" && "opacity-0",
         status === "saving" && "opacity-70",
         status === "saved" && "opacity-100",
-        status === "error" && "text-[hsl(var(--accent))]",
+        status === "error" && "opacity-100 text-[hsl(var(--accent))]",
         className
       )}
       aria-live="polite"
+      aria-hidden={status === "idle"}
     >
-      {label}
+      {label || "\u00a0"}
     </span>
   );
 }
