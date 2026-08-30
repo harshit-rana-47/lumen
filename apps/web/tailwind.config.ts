@@ -15,7 +15,12 @@ const config: Config = {
         border: "hsl(var(--border))",
         muted: "hsl(var(--muted))",
         primary: "hsl(var(--primary))",
-        accent: "hsl(var(--accent))"
+        accent: "hsl(var(--accent))",
+        surface: "hsl(var(--surface))"
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-serif", "Georgia", "serif"]
       }
     }
   },

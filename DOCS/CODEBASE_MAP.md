@@ -18,21 +18,24 @@ Lumen/
 
 | Feature | UI | State/Logic | API | Database | Worker/AI | Tests |
 |---|---|---|---|---|---|---|
+| Landing | `app/page.tsx` | — | — | — | — | — |
+| App shell / V1 nav | `AppShell`, Sidebar/BottomNav/TopBar | `lib/nav.ts` | — | — | — | typecheck |
 | Auth | `(auth)/*` | `authStore` | `modules/auth` | Auth + `users` | — | scaffold |
-| Journal | `JournalEditor`, journal pages | `useJournal` | `modules/journal` (list/get prefer `request.db`) | `journal_entries` | embed→memory pg-boss | journal + encrypt |
-| Chat / Reflect API | Chat pages | `useChat` | `modules/chat` + `lib/context` | chat tables | Groq | context tests |
-| Memory | memory pages | `useMemory` | `modules/memory` | `memory_items` (+ versioning) | `memory.worker` | pipeline rules |
-| Daily log | Today | — | `daily-log` | `daily_logs` | — | — |
-| Insights | insights pages | `useInsights` | `modules/insights` | `insights` | nightly pg-boss | — |
-| Health | — | — | `health` | — | checks supabase/postgres/groq/embeddings | — |
-| Account delete | Settings | — | `modules/user` (`USER_DATA_TABLES`) | owned tables (audit kept) | — | `deletion.inventory.test.ts` |
+| Today | `(dashboard)/today` | page hooks | journal + daily-log | journals/logs | — | — |
+| Journal | `JournalEditor`, journal pages | `useJournal` | `modules/journal` | `journal_entries` | embed→memory | journal + encrypt |
+| Chat | chat pages | `useChat` | `modules/chat` + context | chat tables | Groq | context tests |
+| You | `(dashboard)/you` | — | `modules/user` | profile/purge | — | deletion inventory |
 
 ## Important paths
 
 | Concern | Path |
 |---|---|
+| V1 nav config | `apps/web/lib/nav.ts` |
+| App shell | `apps/web/components/layout/AppShell.tsx` |
+| Page transitions | `apps/web/components/motion/PageTransition.tsx` |
 | Motion tokens | `apps/web/lib/motion/tokens.ts` |
 | Motion primitives | `apps/web/components/motion/*` |
+| Middleware | `apps/web/middleware.ts` |
 | GSAP register | `apps/web/lib/motion/gsap.ts` |
 | pg-boss | `apps/api/src/jobs/pgboss.ts`, `jobs/worker.ts` |
 | Queue facade | `apps/api/src/lib/queue.ts` |

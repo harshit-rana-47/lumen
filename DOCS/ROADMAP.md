@@ -12,26 +12,15 @@ Baseline, cutover, verification (live DB still env-blocked).
 
 ## CURRENT
 
-### Phase 2 — Frontend redesign (expressive product)
+### Phase 2 — Frontend redesign
 
-Motion correction locked:
-
-- Landing = cinematic / immersive / storytelling-heavy  
-- Authenticated app = expressive / tactile / interaction-heavy (not static)  
-
-Order of work:
-
-1. Motion tokens + reusable primitives (`DOCS/FRONTEND.md`)  
-2. Shared visual identity (typography/color/surfaces)  
-3. V1 nav shell + page transitions  
-4. Journal + Dear Diary chrome + Reflect choreography  
-5. Chat / Today / You expressive passes  
-6. Landing cinematic polish  
-7. Performance + reduced-motion verification passes  
+- Slice 1: Motion tokens/primitives — **done**  
+- Slice 2: V1 navigation shell + page transitions — **done**  
+- Next: Journal + Dear Diary + Reflect (not started)  
 
 ## NEXT
 
-Complete Phase 2 sections with stop-for-review at major surfaces (Journal/Reflect, Chat, Landing).
+Phase 2 Slice 3: Journal writing surface, Dear Diary chrome, Reflect panel.
 
 ## BLOCKED
 

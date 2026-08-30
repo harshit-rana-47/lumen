@@ -5,3 +5,4 @@ export { PressFeedback } from "./PressFeedback";
 export { HoverLift } from "./HoverLift";
 export { ThinkingIndicator } from "./ThinkingIndicator";
 export { SaveIndicator } from "./SaveIndicator";
+export { PageTransition } from "./PageTransition";

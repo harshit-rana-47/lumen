@@ -254,15 +254,48 @@ WOW comes from: **typography + composition + motion + interaction + product stor
 
 ---
 
-## Implementation status (Phase 2)
+## Authenticated shell (Phase 2 Slice 2 — implemented)
+
+### Route structure
+
+| Path | Audience | Notes |
+|---|---|---|
+| `/` | Public | Landing (minimal; cinematic expansion later). Auth users redirected to `/today` |
+| `/login`, `/register` | Public | Auth forms; session → `/today` (or `redirectTo`) |
+| `/today` | Auth | Today home |
+| `/journal`, `/journal/*` | Auth | Journal |
+| `/chat`, `/chat/*` | Auth | Chat |
+| `/you` | Auth | Account / settings surface |
+| `/settings` | Auth | Redirect → `/you` |
+| `/memory`, `/insights`, `/goals`, `/timeline` | Auth | **Deferred** — still routable, not in primary nav |
+| `/dashboard` | Auth | Redirect → `/today` |
+
+### Shell architecture
+
+- `AppShell` — auth gate + desktop sidebar + top bar + mobile bottom nav + `PageTransition`
+- `AppSidebar` — desktop persistent nav with **moving active pill** (`transform`/`height`)
+- `AppBottomNav` — intentional mobile bottom nav (4 items, safe-area, ≥44px targets)
+- `AppTopBar` — section label (desktop), brand (mobile), account → `/you`
+- Nav config: `apps/web/lib/nav.ts` (`PRIMARY_NAV`)
+
+### Page transitions
+
+`PageTransition` wraps authenticated page content: short opacity + subtle Y on pathname change; respects reduced motion; cleans up via `useGSAP`.
+
+### Typography
+
+- Display: Fraunces (`--font-display`)
+- UI: DM Sans (`--font-sans`)
+
+### Motion primitives used in shell
+
+PageTransition, ThinkingIndicator (shell loading), CSS token transitions for active indicator / press.
 
 | Item | Status |
 |---|---|
-| Motion tokens + primitives scaffold | **Partial** — tokens, Fade/Slide/StaggerReveal, PressFeedback, HoverLift, ThinkingIndicator, SaveIndicator |
-| V1 nav IA | Planned |
+| Motion tokens + primitives scaffold | **Partial** |
+| V1 nav shell + page transitions | **Implemented** |
 | Dear Diary chrome | Planned |
 | Reflect panel choreography | Planned |
-| Landing cinematic | Planned |
-| Full app expressive pass | Planned |
-
-Legacy UX debt remains until rebuilt: deferred nav destinations, no Dear Diary/Reflect UI, Lexical plain-text storage, etc.
+| Landing cinematic | Planned (minimal landing exists) |
+| Journal / Chat / Today / You redesign | Planned |

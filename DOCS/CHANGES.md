@@ -118,3 +118,12 @@ Chronological implementation history. Concise.
 - **Change:** Document landing-vs-app motion distinction; tokens/primitives/GSAP/performance/reduced-motion in `FRONTEND.md`; scaffold motion system  
 - **Why:** Authenticated app must feel alive — not a lifeless dashboard; coherence over random effects  
 - **Files:** `DOCS/FRONTEND.md`, `AGENT_CONTEXT.md`, `ROADMAP.md`, `apps/web/lib/motion/*`, `apps/web/components/motion/*`  
+
+---
+
+### Phase 2 Slice 2 — Authenticated navigation shell
+
+- **Change:** V1 nav Today/Journal/Chat/You; `AppShell` with moving active indicators; `PageTransition`; public `/` landing; `/today` home; `/you` account; middleware auth redirects  
+- **Why:** Product shell + motion language before Journal/Reflect slices  
+- **Files:** `components/layout/App*`, `lib/nav.ts`, `middleware.ts`, `app/page.tsx`, `today/`, `you/`, fonts  
+- **Tests:** web typecheck PASS; API Jest 18/18  

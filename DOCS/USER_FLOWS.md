@@ -58,10 +58,20 @@ Describes **current** flows after Phase 1 fixes. Approved future UX (Dear Diary 
 3. Deletes owned data tables, soft-deletes profile / nulls DEK, deletes Auth user  
 4. `audit_logs` retained  
 
-## Approved IA vs current nav
+## Auth + shell flows (Phase 2 Slice 2)
 
-| Approved V1 | Current UI destinations |
-|---|---|
-| Today, Journal, Chat, You | Today, Journal, Chat, Memory, Insights, Timeline, Goals, Settings |
+### Unauthenticated
 
-IA cleanup is a **frontend redesign** concern after backend cutover.
+1. Visit `/` → public landing  
+2. Log in / Register → session cookies → `/today`  
+
+### Authenticated
+
+1. Visit `/` → middleware redirects to `/today`  
+2. Shell shows Today · Journal · Chat · You  
+3. Route changes animate via `PageTransition`  
+4. Account avatar → `/you` (legacy `/settings` redirects here)  
+
+### Deferred routes
+
+`/memory`, `/insights`, `/goals`, `/timeline` remain reachable if bookmarked but are **not** primary nav.

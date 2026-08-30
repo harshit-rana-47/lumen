@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import { api } from "@/lib/api";
+import { APP_HOME } from "@/lib/nav";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -17,8 +18,16 @@ type LoginResponse = {
   };
 };
 
-export default function LoginPage() {
+function safeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return APP_HOME;
+  }
+  return value;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const restoreSession = useAuthStore((state) => state.restoreSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,7 +71,7 @@ export default function LoginPage() {
 
       syncSessionCookies(browserSession);
       await restoreSession();
-      router.replace("/");
+      router.replace(safeRedirectPath(searchParams.get("redirectTo")));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to log in.");
     } finally {
@@ -71,13 +80,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <h1 className="text-3xl font-semibold">Log in</h1>
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6">
+      <Link href="/" className="font-display text-2xl tracking-tight text-foreground">
+        Lumen
+      </Link>
+      <h1 className="mt-8 text-3xl font-semibold tracking-tight">Log in</h1>
       <form className="mt-8 space-y-4" onSubmit={onSubmit}>
         <label className="block text-sm font-medium">
           Email
           <input
-            className="mt-2 w-full rounded border border-[hsl(var(--border))] bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lg border border-border bg-[hsl(var(--surface))] px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -87,7 +99,7 @@ export default function LoginPage() {
         <label className="block text-sm font-medium">
           Password
           <input
-            className="mt-2 w-full rounded border border-[hsl(var(--border))] bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lg border border-border bg-[hsl(var(--surface))] px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -96,19 +108,33 @@ export default function LoginPage() {
         </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
-          className="w-full rounded bg-[hsl(var(--primary))] px-4 py-2 font-medium text-white disabled:opacity-60"
+          className="w-full rounded-lg bg-primary px-4 py-2.5 font-medium text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
           type="submit"
           disabled={submitting}
         >
-          {submitting ? "Logging in..." : "Log in"}
+          {submitting ? "Logging in…" : "Log in"}
         </button>
       </form>
-      <p className="mt-6 text-sm">
+      <p className="mt-6 text-sm text-foreground/70">
         No account yet?{" "}
-        <Link className="font-medium text-[hsl(var(--primary))]" href="/register">
+        <Link className="font-medium text-primary" href="/register">
           Register
         </Link>
       </p>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-dvh items-center justify-center text-sm text-foreground/60">
+          Preparing sign-in…
+        </main>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

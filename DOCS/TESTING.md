@@ -2,17 +2,23 @@
 
 Last updated: 2026-08-30 (Phase 1.75)
 
-## Automated results (Phase 1.75)
+## Frontend (Phase 2 Slice 2)
 
-| Suite | Result |
+| Check | Result |
 |---|---|
-| `npm -w @lumen/api run typecheck` | **PASS** |
-| `npm -w @lumen/web run typecheck` | **PASS** |
-| `npm -w @lumen/shared run typecheck` | **PASS** |
-| `npm -w @lumen/api run test` (Jest) | **18/18 PASS** |
-| `next lint` | **FAIL** (known Next 16 CLI tooling — BUG-010) |
-| `db:migrate` / `db:verify` | **BLOCKED** — no `DATABASE_URL`; Supabase DNS ENOTFOUND |
-| Playwright E2E | **NOT TESTABLE** (not established) |
+| Web typecheck | **PASS** |
+| API Jest | **18/18 PASS** |
+| Manual nav matrix | Code-complete; browser visual QA recommended on device |
+
+Shell verification checklist:
+
+- [ ] Unauth `/` landing  
+- [ ] Auth `/` → `/today`  
+- [ ] Today ↔ Journal ↔ Chat ↔ You transitions  
+- [ ] Back/forward + hard refresh on protected routes  
+- [ ] Mobile ~375–430px bottom nav  
+- [ ] `prefers-reduced-motion`  
+- [ ] Keyboard focus / `aria-current`  
 
 ## Phase 1.75 verification matrix
 

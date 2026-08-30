@@ -167,7 +167,8 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-011 | Security | Open | Most mutating routes still service-role; RLS not live-verified |
 | BUG-012 | Ops | Open | Migrations not applied/verified on live project (Supabase DNS ENOTFOUND; DATABASE_URL unset) |
 | BUG-013 | Coverage | Open | No live integration tests for queue/RLS |
-| BUG-014 | Product debt | Open | Nav exposes deferred destinations; Dear Diary / Reflect UI missing |
+| BUG-014 | Product debt | Open | Deferred destinations still routable (`/memory` etc.) but removed from primary nav (Phase 2 Slice 2) |
+| BUG-020 | Low | Open | Minimal landing at `/` — full cinematic landing still planned |
 | BUG-015 | Architecture | Fixed (Phase 1.5) | BullMQ/Redis + Neo4j removed; pg-boss + Postgres memory path active in code |
 | BUG-016 | Critical (caught in 1.5) | Fixed in migrations | Phase 1 RLS `match_*` used SECURITY INVOKER + `auth.uid()` — would break service-role retrieval; rewritten SECURITY DEFINER with tenancy gate |
 | BUG-017 | High | Fixed (Phase 1.5) | AI memory upsert could overwrite `user_edited` corrections — now skipped; confidence gate added |

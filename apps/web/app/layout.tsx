@@ -1,9 +1,22 @@
 import type { Metadata } from "next";
+import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap"
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   title: "Lumen",
-  description: "AI-powered journaling, memory, and mental wellness."
+  description: "Private AI journaling companion."
 };
 
 type RootLayoutProps = {
@@ -12,8 +25,8 @@ type RootLayoutProps = {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={`${dmSans.variable} ${fraunces.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

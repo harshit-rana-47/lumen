@@ -59,7 +59,7 @@ export default function RegisterPage() {
 
       syncSessionCookies(session);
       await restoreSession();
-      router.replace("/");
+      router.replace("/today");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to register.");
     } finally {

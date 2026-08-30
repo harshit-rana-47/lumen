@@ -1,40 +1,36 @@
 # AGENT_CONTEXT — read this first
 
-Last updated: 2026-08-30 (Phase 2 started — motion system)
+Last updated: 2026-08-30 (Phase 2 Slice 2 — nav shell)
 
 ## What Lumen is
 
-Lumen (also Dear Diary chrome) is a **private AI journaling companion**. Journal-first loop: write → understand → remember → correct → connect → reflect → write again.
+Private AI journaling companion. Journal-first loop: write → understand → remember → correct → connect → reflect → write again.
 
 ## Current phase
 
-- **DONE:** Phase 0/1 · 1.5 cutover · 1.75 verification  
-- **CURRENT:** **Phase 2 frontend redesign** (approved under motion-philosophy correction)  
-- Landing = cinematic/storytelling · App = expressive/tactile/interaction-heavy (both alive; not “app = static”)  
-- See `DOCS/FRONTEND.md` for motion tokens, primitives, GSAP, performance, reduced-motion  
+- **DONE:** Phase 0/1 · 1.5 · 1.75 · Phase 2 motion foundation · **Phase 2 Slice 2 nav shell**
+- **CURRENT:** Phase 2 frontend — next slice is Journal / Dear Diary / Reflect (not started)
+- Landing (minimal at `/`) vs App (expressive shell) — see `DOCS/FRONTEND.md`
+
+## Auth routing
+
+- Unauthenticated `/` → public landing  
+- Authenticated `/` → redirect `/today`  
+- V1 nav: **Today · Journal · Chat · You** (`/today`, `/journal`, `/chat`, `/you`)  
+- Shell: `AppShell` + moving active indicator + `PageTransition`
 
 ## Architecture (actual)
 
-Express + Next 16 · Supabase · pg-boss · Groq · MiniLM · encryption · no BullMQ/Redis/Neo4j  
+Express + Next 16 · Supabase · pg-boss · Groq · MiniLM · encryption  
 
-Live DB migrate/RLS still **BLOCKED** in env (DNS / empty `DATABASE_URL`) — do not claim RLS live.
-
-## Product constraints (do not reopen)
-
-V1 nav: Today · Journal · Chat · You · Dear Diary chrome (not stored/embedded) · Reflect = entry-anchored panel · journal writing performance sacred  
+Live DB migrate/RLS still env-blocked — do not claim RLS live.
 
 ## MUST NOT
 
-- Lifeless dashboard aesthetic for the authenticated app  
-- Animation showcase / AI-slop motion  
-- Move journal text while typing; delay typing for effects  
-- Generic spinners as the only AI thinking state  
-- Restart backend architecture decisions  
+- Re-add Goals/Timeline/Insights/Memory to primary nav  
+- Start Journal/Reflect redesign until next approved slice  
+- Lifeless dashboard shell · AI-slop motion · delay typing for animation  
 
 ## Work on next
 
-1. Motion primitives + tokens (foundation)  
-2. V1 shell / nav transitions  
-3. Journal + Dear Diary + Reflect choreography  
-4. Chat thinking/streaming states · Today · You  
-5. Landing cinematic last or in parallel once identity tokens stable  
+Journal redesign + Dear Diary chrome + Reflect panel choreography (await instruction).

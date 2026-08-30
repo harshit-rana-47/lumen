@@ -2,18 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { MobileNav } from "./MobileNav";
-import { Sidebar } from "./Sidebar";
-import { TopBar } from "./TopBar";
+import { AppBottomNav } from "./AppBottomNav";
+import { AppSidebar } from "./AppSidebar";
+import { AppTopBar } from "./AppTopBar";
+import { PageTransition } from "@/components/motion/PageTransition";
 import { ThinkingIndicator } from "@/components/motion";
 import { useAuthStore } from "@/stores/authStore";
 import "@/lib/motion/gsap";
 
-type DashboardShellProps = {
+type AppShellProps = {
   children: React.ReactNode;
 };
 
-export function DashboardShell({ children }: DashboardShellProps) {
+/**
+ * Authenticated Lumen shell — V1 nav: Today · Journal · Chat · You.
+ */
+export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const initialized = useAuthStore((state) => state.initialized);
   const session = useAuthStore((state) => state.session);
@@ -31,7 +35,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
   if (!initialized) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <main className="flex min-h-dvh items-center justify-center bg-background">
         <ThinkingIndicator label="Preparing Lumen" />
       </main>
     );
@@ -42,13 +46,15 @@ export function DashboardShell({ children }: DashboardShellProps) {
   }
 
   return (
-    <div className="min-h-screen md:flex">
-      <Sidebar />
-      <div className="min-w-0 flex-1 pb-20 md:pb-0">
-        <TopBar />
-        <main className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">{children}</main>
+    <div className="min-h-dvh bg-background md:flex">
+      <AppSidebar />
+      <div className="flex min-w-0 flex-1 flex-col pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
+        <AppTopBar />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 lg:px-8">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
-      <MobileNav />
+      <AppBottomNav />
     </div>
   );
 }
