@@ -1,0 +1,10 @@
+{
+  "name": "@lumen/eslint-config",
+  "private": true,
+  "version": "0.1.0",
+  "main": "index.js",
+  "peerDependencies": {
+    "eslint": "^9.39.2",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "@lumen/tsconfig/node.json",
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node", "jest"]
+  },
+  "include": ["src"]
+}

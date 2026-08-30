@@ -1,0 +1,47 @@
+# Secrets / local env (never commit)
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# Dependencies & build
+node_modules
+.turbo
+dist
+coverage
+*.tsbuildinfo
+.next
+out
+build
+
+# Package manager / tooling local state
+.npm
+.yarn
+.pnpm-store
+
+# IDE / OS
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Test / local artifacts
+playwright-report
+test-results
+.nyc_output
+
+# ML model caches (embeddings)
+.cache
+**/node_modules/@xenova/**/.cache
+
+# Deploy CLI local
+.vercel
+.railway

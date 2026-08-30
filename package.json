@@ -1,0 +1,25 @@
+{
+  "name": "lumen",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-powered journaling, memory, and mental wellness platform.",
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*/*",
+    "packages/shared"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "audit:security": "npm audit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.0.14"
+  }
+}
