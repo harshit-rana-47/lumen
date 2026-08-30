@@ -29,8 +29,9 @@ In-process `express-rate-limit` (Redis removed). Fine for single instance.
 
 Confirmation phrase → purge owned tables → soft-delete profile/DEK → delete Auth user → keep `audit_logs`.
 
-## Open gaps
+## Phase 1.75 verification notes
 
-1. Most mutating routes still use service role (app-layer `user_id` filters)
-2. Live RLS verification pending
-3. Limited automated RLS tests (need live DB)
+- Live DB/RLS/E2E: **BLOCKED** (Supabase DNS ENOTFOUND; empty `DATABASE_URL`) — do not claim operational RLS.
+- App-layer isolation: journal/chat/memory queries consistently filter `user_id` after `authMiddleware`.
+- Account delete purges listed owned tables and retains `audit_logs`; **Storage object cleanup still missing** (BUG-018).
+- Service role remains required for workers, DEK unwrap, auth admin, and most writes.

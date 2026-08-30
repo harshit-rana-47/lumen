@@ -171,3 +171,20 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-015 | Architecture | Fixed (Phase 1.5) | BullMQ/Redis + Neo4j removed; pg-boss + Postgres memory path active in code |
 | BUG-016 | Critical (caught in 1.5) | Fixed in migrations | Phase 1 RLS `match_*` used SECURITY INVOKER + `auth.uid()` — would break service-role retrieval; rewritten SECURITY DEFINER with tenancy gate |
 | BUG-017 | High | Fixed (Phase 1.5) | AI memory upsert could overwrite `user_edited` corrections — now skipped; confidence gate added |
+| BUG-018 | Medium | Open | Account delete removes DB rows but does not purge Storage objects (`journal-media`, `user-exports`) |
+| BUG-019 | Low | Open | `stopPgBoss()` exists but process SIGTERM/SIGINT hooks are not wired for graceful worker/API shutdown |
+
+### BUG-012 (Phase 1.75 reconfirmation)
+
+| Field | Value |
+|---|---|
+| ID | BUG-012 |
+| Date / phase | 2026-08-30 / Phase 1.75 |
+| Severity | Ops / High for live E2E |
+| Status | Open — **BLOCKED** |
+| Symptom | Cannot migrate, verify RLS, or run live journal→memory→chat pipeline |
+| Root cause | Configured Supabase host DNS ENOTFOUND; `DATABASE_URL` empty in `.env` |
+| Fix | Restore reachable Supabase project; set `DATABASE_URL`; run `db:migrate` + `db:verify` |
+| Files involved | `.env`, Supabase project networking |
+| Regression test | `npm -w @lumen/api run db:verify` |
+| Lesson | Do not work around missing cloud env by inventing local infra in verification phases |

@@ -41,11 +41,8 @@ RLS-era SECURITY INVOKER + `auth.uid()` checks return empty for service-role wor
 
 Graph visualization now derives a simple user→memory star from Postgres. No second graph store.
 
-## Deferred / do not expand in V1
+## Phase 1.75
 
-- Complex graph visualization  
-- Goals / Timeline / Habits as top-level destinations  
-- Rich chat personalities  
-- Voice/image journal types  
-- Full frontend redesign (needs live verification + approval)  
-- Forced Express→Next flatten mid-cutover  
+Verification without a live database forces reliance on contracts + unit tests. That is intentional: inventing local substitute infra would falsify readiness. Restore cloud env before claiming production E2E.
+
+Reflection and general chat share `buildSystemContext`; strategy differs only by mode/pinned entry — confirmed by prompt-order and mode tests.

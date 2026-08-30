@@ -103,3 +103,13 @@ Chronological implementation history. Concise.
 - **Change:** Semantic journal retrieval in context; expand Jest; update DOCS for actual state  
 - **Why:** Reflect/general strategies verified at unit level; docs honesty about live DB  
 - **Files:** `lib/context.ts`, tests, `DOCS/*`  
+
+---
+
+### Phase 1.75 — Functional verification
+
+- **Change:** Readiness verification without live DB; targeted tests (deletion inventory, reflection authority); document PASS/FAIL/BLOCKED matrix  
+- **Why:** Decide Phase 2 frontend readiness honestly  
+- **Files:** `deletion.inventory.test.ts`, `reflection.authority.test.ts`, `USER_DATA_TABLES` export, `DOCS/*`  
+- **Tests:** Jest **18/18**; typecheck pass  
+- **Impact:** No architecture change; live E2E still blocked on env  

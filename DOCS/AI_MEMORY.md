@@ -33,8 +33,14 @@ Chat passes `pinnedEntryId` / session mode into context. Reflect **UI** still pl
 
 `GET` memory graph now builds a star graph (user → active memories) from Postgres. No graph database.
 
-## Not implemented
+## Phase 1.75 status
 
-- Dear Diary chrome exclusion (UI pending)
-- Reflect panel UI
-- Live E2E verification on unreachable Supabase project
+| Concern | Status |
+|---|---|
+| Pipeline code (pg-boss → MiniLM → Groq → versioned memory) | **PASS** (static + unit) |
+| Live end-to-end extraction | **NOT TESTABLE** without DB/Groq workers |
+| Confidence gate / user_edited protection | **PASS** (unit) |
+| Supersession | **PASS** (code review + unit rules) |
+| Neo4j | **Removed** |
+
+HNSW indexes are **not** created by default migrations (manual after data volume). Retrieval RPCs still work without HNSW (may seq-scan).

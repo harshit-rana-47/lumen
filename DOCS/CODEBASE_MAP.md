@@ -25,6 +25,7 @@ Lumen/
 | Daily log | Today | — | `daily-log` | `daily_logs` | — | — |
 | Insights | insights pages | `useInsights` | `modules/insights` | `insights` | nightly pg-boss | — |
 | Health | — | — | `health` | — | checks supabase/postgres/groq/embeddings | — |
+| Account delete | Settings | — | `modules/user` (`USER_DATA_TABLES`) | owned tables (audit kept) | — | `deletion.inventory.test.ts` |
 
 ## Important paths
 

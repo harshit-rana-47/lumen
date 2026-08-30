@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-08-30 (Phase 1.5)
+Last updated: 2026-08-30 (Phase 1.75)
 
 Do not mark future work as completed.
 
@@ -8,42 +8,30 @@ Do not mark future work as completed.
 
 ### Phase 0 / Phase 1 — cleanup and stabilization
 
-(See git history through docs system commit.)
+### Phase 1.5 — Backend cutover (code)
 
-### Phase 1.5 — Backend cutover (code complete; live DB ops pending)
+pg-boss active; BullMQ/Redis/Neo4j removed; memory versioning; user-scoped client partial; migrations hardened.
 
-- Fixed `match_*` RPCs for service-role workers (SECURITY DEFINER + tenancy gate)
-- Memory versioning / supersession schema migration
-- User-scoped Supabase client on authenticated requests (journal list/get use it)
-- **pg-boss** is the active queue; BullMQ/Redis removed
-- Neo4j removed; memory graph served from Postgres
-- Memory pipeline: confidence gating + never overwrite `user_edited`
-- Context: semantic journals + general/reflection strategies
-- Expanded Jest coverage (14 tests)
-- Migration apply/verify scripts under `apps/api/scripts/`
+### Phase 1.75 — Functional verification
+
+- Local typecheck + Jest **18/18**
+- Static/unit verification of journal enqueue, memory gating, context strategies, queue cutover, deletion inventory
+- Live DB migrate/RLS/E2E **BLOCKED** (DNS ENOTFOUND; empty `DATABASE_URL`) — documented, no code workaround
 
 ## CURRENT
 
-### Phase 1.5 ops verification
-
-- Restore reachable Supabase / set `DATABASE_URL`
-- Apply + verify migrations/RLS on live project
-- Run end-to-end pipeline against real data
-
-**Blocked on:** configured Supabase project DNS currently ENOTFOUND; `DATABASE_URL` unset in local `.env`
+Awaiting **explicit approval** to start Phase 2 frontend redesign.
 
 ## NEXT
 
-1. Complete live verification above  
-2. Phase 2 frontend redesign (Dear Diary, Reflect panel, V1 nav) — **only with explicit approval**  
+Phase 2: Dear Diary chrome, Reflect panel, V1 nav IA — only with approval.
 
 ## BLOCKED
 
 | Item | Blocked by |
 |---|---|
-| Claiming RLS active in production | Live `db:migrate` + `db:verify` + authenticated policy tests |
-| Frontend redesign | Live backend verification + explicit approval |
-| Full Express → Next flatten | Deliberately deferred as too risky mid-cutover; see ARCHITECTURE.md |
+| Claiming live RLS / production E2E | Reachable Supabase + `DATABASE_URL` + `db:migrate`/`db:verify` |
+| Full Express → Next flatten | Deferred (not required to start Phase 2 UI) |
 
 ## DEFERRED
 

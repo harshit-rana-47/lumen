@@ -14,7 +14,7 @@ type UserRow = {
 };
 
 /** Owned rows that must be removed on account deletion. audit_logs are retained. */
-const USER_DATA_TABLES = [
+export const USER_DATA_TABLES = [
   "chat_messages",
   "chat_sessions",
   "media_attachments",
