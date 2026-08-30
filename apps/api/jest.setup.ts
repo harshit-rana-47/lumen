@@ -1,0 +1,12 @@
+process.env.NODE_ENV ??= "test";
+process.env.PORT ??= "4000";
+process.env.APP_URL ??= "http://localhost:3000";
+process.env.API_URL ??= "http://localhost:4000";
+process.env.SUPABASE_URL ??= "https://example.supabase.co";
+process.env.SUPABASE_ANON_KEY ??= "test-anon-key";
+process.env.SUPABASE_SERVICE_ROLE_KEY ??= "test-service-role-key";
+process.env.NEXT_PUBLIC_SUPABASE_URL ??= "https://example.supabase.co";
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??= "test-anon-key";
+process.env.DATABASE_URL ??= "postgresql://postgres:postgres@127.0.0.1:5432/lumen_test";
+process.env.GROQ_API_KEY ??= "test-groq-key";
+process.env.MASTER_ENCRYPTION_KEY ??= "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
