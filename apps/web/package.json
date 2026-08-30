@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@lexical/react": "^0.17.1",
     "@lumen/shared": "file:../../packages/shared",
     "@supabase/supabase-js": "^2.110.0",
@@ -18,6 +19,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
+    "gsap": "^3.15.0",
     "lexical": "^0.17.1",
     "lucide-react": "^0.468.0",
     "next": "^16.2.12",

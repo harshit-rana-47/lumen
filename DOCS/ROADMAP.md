@@ -1,38 +1,45 @@
 # ROADMAP.md
 
-Last updated: 2026-08-30 (Phase 1.75)
+Last updated: 2026-08-30 (Phase 2)
 
 Do not mark future work as completed.
 
 ## DONE
 
-### Phase 0 / Phase 1 — cleanup and stabilization
+### Phase 0 / 1 / 1.5 / 1.75
 
-### Phase 1.5 — Backend cutover (code)
-
-pg-boss active; BullMQ/Redis/Neo4j removed; memory versioning; user-scoped client partial; migrations hardened.
-
-### Phase 1.75 — Functional verification
-
-- Local typecheck + Jest **18/18**
-- Static/unit verification of journal enqueue, memory gating, context strategies, queue cutover, deletion inventory
-- Live DB migrate/RLS/E2E **BLOCKED** (DNS ENOTFOUND; empty `DATABASE_URL`) — documented, no code workaround
+Baseline, cutover, verification (live DB still env-blocked).
 
 ## CURRENT
 
-Awaiting **explicit approval** to start Phase 2 frontend redesign.
+### Phase 2 — Frontend redesign (expressive product)
+
+Motion correction locked:
+
+- Landing = cinematic / immersive / storytelling-heavy  
+- Authenticated app = expressive / tactile / interaction-heavy (not static)  
+
+Order of work:
+
+1. Motion tokens + reusable primitives (`DOCS/FRONTEND.md`)  
+2. Shared visual identity (typography/color/surfaces)  
+3. V1 nav shell + page transitions  
+4. Journal + Dear Diary chrome + Reflect choreography  
+5. Chat / Today / You expressive passes  
+6. Landing cinematic polish  
+7. Performance + reduced-motion verification passes  
 
 ## NEXT
 
-Phase 2: Dear Diary chrome, Reflect panel, V1 nav IA — only with approval.
+Complete Phase 2 sections with stop-for-review at major surfaces (Journal/Reflect, Chat, Landing).
 
 ## BLOCKED
 
 | Item | Blocked by |
 |---|---|
-| Claiming live RLS / production E2E | Reachable Supabase + `DATABASE_URL` + `db:migrate`/`db:verify` |
-| Full Express → Next flatten | Deferred (not required to start Phase 2 UI) |
+| Live RLS / production E2E claims | Reachable Supabase + `DATABASE_URL` |
+| Treating app as “static dashboard” | Explicitly rejected — see FRONTEND.md |
 
 ## DEFERRED
 
-Habits, voice/image, collab, native apps, multi-provider LLM, complex graph viz, push, Timeline destination, rich chat personalities, realtime sync, Vitest/Playwright migration.
+Habits, voice/image, collab, native apps, multi-provider LLM, complex graph viz, push, Timeline destination, rich chat personalities, realtime sync, Vitest/Playwright migration, Express→Next flatten.

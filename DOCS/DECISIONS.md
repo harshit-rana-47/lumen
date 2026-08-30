@@ -12,8 +12,11 @@ Important product/technical decisions and rationale. Do not reopen without stron
 |---|---|---|
 | Journal-first UX | Core loop starts and ends with writing | **Approved**; UI still multi-destination |
 | V1 nav: Today · Journal · Chat · You | Focus; defer secondary surfaces | **Approved**; current nav wider |
-| Dear Diary as UI chrome only | Brand ritual without polluting storage/AI | **Approved**; **not implemented** |
-| Reflect = entry action + panel | Keep writing dominant; shared AI, different context | **Approved**; API partial, UI missing |
+| Dear Diary as UI chrome only | Brand ritual without polluting storage/AI | **Approved**; Phase 2 implementing |
+| Reflect = entry action + panel | Keep writing dominant; shared AI, different context | **Approved**; Phase 2 choreography |
+| Landing cinematic vs app expressive | Same identity; different motion density/role | **Approved** (Phase 2 correction) — app must stay alive/tactile |
+| Unified Lumen motion system | Coherence; GSAP for complex; CSS for simple | **Approved**; tokens/primitives in progress |
+| 60fps verified, not claimed | Prefer transform/opacity; test Performance | **Approved** |
 | Full account-data purge (audit retained) | Privacy trust | **Implemented** in user delete path |
 | V1 excludes habits/voice/collab/graph/Timeline destination/etc. | Scope control | **Approved**; some deferred UI still linked |
 

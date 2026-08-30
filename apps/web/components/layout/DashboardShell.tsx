@@ -5,7 +5,9 @@ import { useEffect } from "react";
 import { MobileNav } from "./MobileNav";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { ThinkingIndicator } from "@/components/motion";
 import { useAuthStore } from "@/stores/authStore";
+import "@/lib/motion/gsap";
 
 type DashboardShellProps = {
   children: React.ReactNode;
@@ -29,8 +31,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
   if (!initialized) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-slate-500">
-        Loading
+      <main className="flex min-h-screen items-center justify-center">
+        <ThinkingIndicator label="Preparing Lumen" />
       </main>
     );
   }

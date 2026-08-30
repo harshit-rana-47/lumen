@@ -31,6 +31,9 @@ Lumen/
 
 | Concern | Path |
 |---|---|
+| Motion tokens | `apps/web/lib/motion/tokens.ts` |
+| Motion primitives | `apps/web/components/motion/*` |
+| GSAP register | `apps/web/lib/motion/gsap.ts` |
 | pg-boss | `apps/api/src/jobs/pgboss.ts`, `jobs/worker.ts` |
 | Queue facade | `apps/api/src/lib/queue.ts` |
 | Context | `apps/api/src/lib/context.ts` |

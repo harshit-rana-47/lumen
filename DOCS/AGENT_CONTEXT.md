@@ -1,46 +1,40 @@
 # AGENT_CONTEXT — read this first
 
-Last updated: 2026-08-30 (Phase 1.75 functional verification)
+Last updated: 2026-08-30 (Phase 2 started — motion system)
 
 ## What Lumen is
 
-Lumen (product chrome also called “Dear Diary”) is a **private AI journaling companion**. The journal is the primary product. Core loop: write → understand → remember → correct memory → connect past context → reflect → write again.
-
-## Approved product direction (V1)
-
-- Nav: **Today · Journal · Chat · You**
-- Reflect = entry action (not nav); Dear Diary chrome = UI-only (not stored/embedded)
-- Reflect UI / Dear Diary UI **not built** (Phase 2)
-
-## Current architecture (actual)
-
-Express + Next 16 monorepo · Supabase · **pg-boss** · Groq · local MiniLM · envelope encryption · Neo4j/BullMQ/Redis **removed**.
+Lumen (also Dear Diary chrome) is a **private AI journaling companion**. Journal-first loop: write → understand → remember → correct → connect → reflect → write again.
 
 ## Current phase
 
-- **DONE:** Phase 0/1 · Phase 1.5 cutover · **Phase 1.75 verification pass**
-- **NEXT:** Phase 2 frontend redesign — **await explicit approval**
-- **DO NOT** start Phase 2 until approved
+- **DONE:** Phase 0/1 · 1.5 cutover · 1.75 verification  
+- **CURRENT:** **Phase 2 frontend redesign** (approved under motion-philosophy correction)  
+- Landing = cinematic/storytelling · App = expressive/tactile/interaction-heavy (both alive; not “app = static”)  
+- See `DOCS/FRONTEND.md` for motion tokens, primitives, GSAP, performance, reduced-motion  
 
-## Phase 1.75 readiness (summary)
+## Architecture (actual)
 
-| Area | Result |
-|---|---|
-| Database migrate/verify | **BLOCKED** (Supabase DNS ENOTFOUND; `DATABASE_URL` empty) |
-| Auth + RLS live | **BLOCKED** (RLS SQL ready; not live-verified) |
-| Journal / memory / chat / reflect / queue (code + unit) | **PASS** where locally testable |
-| Live E2E pipeline | **NOT TESTABLE** without DB |
-| Automated tests | **18/18** Jest; typecheck pass |
+Express + Next 16 · Supabase · pg-boss · Groq · MiniLM · encryption · no BullMQ/Redis/Neo4j  
 
-**Verdict:** Backend is ready for Phase 2 frontend redesign, subject to the documented live-environment blockers.
+Live DB migrate/RLS still **BLOCKED** in env (DNS / empty `DATABASE_URL`) — do not claim RLS live.
+
+## Product constraints (do not reopen)
+
+V1 nav: Today · Journal · Chat · You · Dear Diary chrome (not stored/embedded) · Reflect = entry-anchored panel · journal writing performance sacred  
 
 ## MUST NOT
 
-- Restart approved architecture decisions
-- Reintroduce BullMQ/Redis/Neo4j
-- Start frontend redesign without approval
-- Claim RLS active without live `db:verify`
+- Lifeless dashboard aesthetic for the authenticated app  
+- Animation showcase / AI-slop motion  
+- Move journal text while typing; delay typing for effects  
+- Generic spinners as the only AI thinking state  
+- Restart backend architecture decisions  
 
-## Work on next (when approved)
+## Work on next
 
-Phase 2 frontend redesign. Prefer restoring reachable Supabase + `DATABASE_URL` before production claims.
+1. Motion primitives + tokens (foundation)  
+2. V1 shell / nav transitions  
+3. Journal + Dear Diary + Reflect choreography  
+4. Chat thinking/streaming states · Today · You  
+5. Landing cinematic last or in parallel once identity tokens stable  

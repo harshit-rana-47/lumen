@@ -62,6 +62,13 @@ Nav in `Sidebar.tsx` / `MobileNav.tsx` still includes: Today, Journal, Chat, **M
 
 These extra destinations conflict with approved V1 IA and will be addressed in the **frontend redesign** phase — not before backend cutover is stable.
 
-## Branding note
+## Visual + motion identity (Phase 2)
 
-Code and README use **Lumen**. Product brief also uses **Dear Diary** for journal chrome. Treat Dear Diary as journal heading chrome; product name remains Lumen unless product later rebrands.
+Landing and authenticated app are **one product**:
+
+- Landing: cinematic / immersive / storytelling-heavy  
+- App: expressive / tactile / interaction-heavy  
+
+Journal remains writing-first. Reflect is a signature spatial interaction. Dear Diary chrome is permanent bold UI-only identity.
+
+Full rules: `DOCS/FRONTEND.md`.

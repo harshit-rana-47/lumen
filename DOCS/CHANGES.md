@@ -108,8 +108,13 @@ Chronological implementation history. Concise.
 
 ### Phase 1.75 — Functional verification
 
-- **Change:** Readiness verification without live DB; targeted tests (deletion inventory, reflection authority); document PASS/FAIL/BLOCKED matrix  
-- **Why:** Decide Phase 2 frontend readiness honestly  
-- **Files:** `deletion.inventory.test.ts`, `reflection.authority.test.ts`, `USER_DATA_TABLES` export, `DOCS/*`  
-- **Tests:** Jest **18/18**; typecheck pass  
-- **Impact:** No architecture change; live E2E still blocked on env  
+- **Change:** Readiness verification without live DB; targeted tests; PASS/FAIL/BLOCKED matrix  
+- **Impact:** Backend ready for Phase 2 subject to live-env blockers  
+
+---
+
+### Phase 2 — Motion philosophy correction + foundation
+
+- **Change:** Document landing-vs-app motion distinction; tokens/primitives/GSAP/performance/reduced-motion in `FRONTEND.md`; scaffold motion system  
+- **Why:** Authenticated app must feel alive — not a lifeless dashboard; coherence over random effects  
+- **Files:** `DOCS/FRONTEND.md`, `AGENT_CONTEXT.md`, `ROADMAP.md`, `apps/web/lib/motion/*`, `apps/web/components/motion/*`  
