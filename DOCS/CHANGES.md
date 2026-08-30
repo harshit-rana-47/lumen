@@ -137,3 +137,13 @@ Chronological implementation history. Concise.
 - **Files:** `components/journal/*`, `JournalEditor`, `EditorToolbar`, `journal/**` routes, `AppShell` full-bleed journal, `useJournal` delete helper, DOCS  
 - **Tests:** web typecheck PASS; API Jest 18/18  
 - **Not included:** Reflect panel / AI Reflect wiring  
+
+---
+
+### Phase 2 Slice 4 — Contextual Reflect experience
+
+- **Change:** Reflect panel/sheet from journal; `pinnedEntryId` on every message; reflection sessions via `chat_sessions` title `reflect:<entryId>`; stale-pin guard on entry switch; archive session on entry delete  
+- **Why:** Same AI stack as Chat; different context strategy — “about what I wrote here”  
+- **Files:** `ReflectProvider`, `ReflectSurface`, `useReflectChat`, `reflectSession`, journal workspace/editor wiring, chat create `title`, DOCS  
+- **Tests:** web typecheck PASS; API Jest 18/18  
+- **Deferred:** Lexical JSON (BUG-022); General Chat redesign  

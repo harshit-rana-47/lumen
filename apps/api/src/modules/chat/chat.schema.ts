@@ -18,7 +18,9 @@ export const chatModeSchema = z.enum([
 ]);
 
 export const createChatSessionSchema = z.object({
-  mode: chatModeSchema.default("general")
+  mode: chatModeSchema.default("general"),
+  /** Optional display/association title (e.g. reflect:<entryId>). */
+  title: z.string().trim().min(1).max(200).optional()
 });
 
 export const chatSessionIdParamsSchema = z.object({

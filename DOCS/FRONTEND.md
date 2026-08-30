@@ -102,20 +102,21 @@ Permanent bold **“Dear Diary,”** above the writing canvas.
 - Not editable, not Lexical state, not stored, not embedded, not sent to AI
 - May have refined entrance/focus when opening a journal — signature identity element
 
-### Reflect (signature interaction)
+### Reflect (signature interaction) — implemented Slice 4
 
-One of the most visually impressive in-app interactions.
-
-- Journal stays visually anchored
-- Panel emerges **from the context of that entry** (spatial connection, not `display:block` + generic slide)
-- Coordinated movement, opacity, blur where appropriate, depth, subtle scale, staggered content, streaming reveal
-- Must communicate: “Lumen is now thinking about **THIS**.”
+- Journal stays visually anchored (`ReflectProvider` + `ReflectSurface` in journal workspace)
+- Desktop: resizable right panel (~380px default); CSS transform/opacity enter
+- Mobile: bottom sheet with backdrop; entry title/date in header
+- `ThinkingIndicator` while waiting for first token (not a generic spinner)
+- Streams via existing chat SSE; always sends `pinnedEntryId`
+- Escape closes; focus returns to Reflect button
+- Switching `activeEntryId` forces close + clears target (stale-pin guard)
 
 ### AI Chat (General + Reflect)
 
-- Lumen-specific thinking state (animated typography / flowing indicator — not “Loading…” spinner everywhere)
-- Streaming: natural message emergence; avoid expensive per-character DOM thrash; smooth scroll
-- Alive without distraction
+- Shared API / encryption / SSE
+- Modes differ only by context strategy (`general` vs `reflection` + pin)
+- General Chat page UI still transitional (not redesigned in Slice 4)
 
 ### Navigation (Today · Journal · Chat · You)
 
@@ -304,7 +305,10 @@ PageTransition, ThinkingIndicator (shell loading), CSS token transitions for act
 | `JournalEntryList` | Browse/search/select; desktop sidebar; mobile drawer |
 | `JournalEditor` | Lexical writing surface + metadata accordion + autosave |
 | `DearDiaryHeading` | Non-editable chrome above content |
-| `ReflectEntryButton` | Visual Reflect entry point only (panel = next slice) |
+| `ReflectEntryButton` | Opens Reflect surface |
+| `ReflectProvider` / `ReflectSurface` | Panel/sheet + pin lifecycle |
+| `useReflectChat` | Reflection SSE + session association |
+| `lib/reflectSession.ts` | `reflect:<entryId>` title helpers |
 | `lib/dearDiary.ts` | Canonical label constant |
 
 ### Dear Diary
@@ -346,6 +350,6 @@ PageTransition, ThinkingIndicator (shell loading), CSS token transitions for act
 | Motion tokens + primitives scaffold | **Partial** |
 | V1 nav shell + page transitions | **Implemented** |
 | Journal + Dear Diary chrome | **Implemented** |
-| Reflect panel choreography | Planned |
+| Reflect panel choreography | **Implemented** |
 | Landing cinematic | Planned (minimal landing exists) |
 | Today / Chat / You redesign | Planned |

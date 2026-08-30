@@ -13,7 +13,8 @@ Important product/technical decisions and rationale. Do not reopen without stron
 | Journal-first UX | Core loop starts and ends with writing | **Approved**; UI still multi-destination |
 | V1 nav: Today · Journal · Chat · You | Focus; defer secondary surfaces | **Implemented** (Slice 2) |
 | Dear Diary as UI chrome only | Brand ritual without polluting storage/AI | **Implemented** (Slice 3) |
-| Reflect = entry action + panel | Keep writing dominant; shared AI, different context | **Approved**; button stub only; panel next |
+| Reflect = entry action + panel | Keep writing dominant; shared AI, different context | **Implemented** (Slice 4) |
+| Reflect persistence via chat_sessions | Reuse encrypted chat infra; title `reflect:<entryId>` associates session | **Implemented** (Slice 4) — no new tables |
 | Journal autosave ~2.5s idle | Balance freshness vs request spam / typing cost | **Implemented** (was 10s) |
 | Landing cinematic vs app expressive | Same identity; different motion density/role | **Approved** (Phase 2 correction) — app must stay alive/tactile |
 | Unified Lumen motion system | Coherence; GSAP for complex; CSS for simple | **Approved**; tokens/primitives in progress |

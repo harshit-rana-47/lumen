@@ -85,12 +85,18 @@ export class ChatService {
   }
 
   async createSession(userId: string, input: CreateChatSessionInput) {
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      mode: input.mode
+    };
+
+    if (input.title) {
+      row.title = input.title;
+    }
+
     const { data, error } = await supabaseAdmin
       .from("chat_sessions")
-      .insert({
-        user_id: userId,
-        mode: input.mode
-      })
+      .insert(row)
       .select(SESSION_SELECT)
       .single<ChatSessionRow>();
 

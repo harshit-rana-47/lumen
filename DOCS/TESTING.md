@@ -1,37 +1,29 @@
 # TESTING.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 3)
+Last updated: 2026-08-30 (Phase 2 Slice 4)
 
-## Frontend (Phase 2 Slice 3 — Journal)
+## Frontend (Phase 2 Slice 4 — Reflect)
 
 | Check | Result |
 |---|---|
 | Web typecheck | **PASS** |
 | API Jest | **18/18 PASS** |
-| Manual journal matrix | Code-complete; browser visual QA recommended (live DB may block save E2E) |
+| Live Reflect E2E | **NOT TESTABLE** without reachable API/DB/Groq |
 
-Journal verification checklist:
+Reflect verification checklist:
 
-- [ ] Create entry → Dear Diary visible → type immediately  
-- [ ] Autosave (~2.5s) → Saving… → Saved; refresh retains body without “Dear Diary,”  
-- [ ] Reopen / switch entries; list selection indicator  
-- [ ] Delete entry → returns to journal  
-- [ ] Empty state (no entries)  
-- [ ] Failed load / failed save messaging  
-- [ ] Mobile 375 / 390 / 430 writing + Entries drawer  
-- [ ] Keyboard editing + toolbar buttons labeled  
-- [ ] `prefers-reduced-motion` (enter/drawer animations off)  
-- [ ] Reflect button present; panel not opened  
-
-Shell verification checklist (Slice 2):
-
-- [ ] Unauth `/` landing  
-- [ ] Auth `/` → `/today`  
-- [ ] Today ↔ Journal ↔ Chat ↔ You transitions  
-- [ ] Back/forward + hard refresh on protected routes  
-- [ ] Mobile ~375–430px bottom nav  
+- [ ] Open Entry A → Reflect → header shows A  
+- [ ] Ask question → ThinkingIndicator → streamed answer  
+- [ ] Close Reflect → journal draft/scroll preserved; focus returns to button  
+- [ ] Open Entry B → Reflect → pinned B (not A)  
+- [ ] Refresh on A with prior reflection → history reloads for `reflect:<A>` session  
+- [ ] Delete entry → reflection session archived (best-effort)  
+- [ ] Mobile sheet + Escape/backdrop close  
 - [ ] `prefers-reduced-motion`  
-- [ ] Keyboard focus / `aria-current`  
+- [ ] Keyboard: Enter send, Shift+Enter newline, Escape close, resize handle arrows (desktop)  
+- [ ] Dear Diary not present in model context (body-only pin)  
+
+Journal checklist (Slice 3) still applies.
 
 ## Phase 1.75 verification matrix
 

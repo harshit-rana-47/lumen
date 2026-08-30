@@ -57,7 +57,7 @@ BullMQ, Redis, and Neo4j are **removed**.
 | Service-role workers/admin | **implemented** | Required for DEK, purge, jobs |
 | Next server actions flatten | **planned** | See remaining migration below |
 | Dear Diary chrome | **implemented** | UI-only; not stored |
-| Reflect panel UI | **planned** | Entry button stub in journal |
+| Reflect panel UI | **implemented** | Desktop panel + mobile sheet; pinnedEntryId |
 | Graph viz / Timeline / Habits | **deferred** | |
 
 ---

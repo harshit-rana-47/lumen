@@ -95,6 +95,64 @@ body {
   animation: journal-drawer-in var(--motion-interaction) var(--ease-standard) both;
 }
 
+@keyframes reflect-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes reflect-sheet-in {
+  from {
+    opacity: 0.9;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reflect-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reflect-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reflect-panel {
+  animation: reflect-panel-in var(--motion-transition) var(--ease-standard) both;
+}
+
+.animate-reflect-sheet {
+  animation: reflect-sheet-in var(--motion-transition) var(--ease-standard) both;
+}
+
+.animate-reflect-backdrop {
+  animation: reflect-backdrop-in var(--motion-interaction) var(--ease-standard) both;
+}
+
+.animate-reflect-message {
+  animation: reflect-message-in var(--motion-interaction) var(--ease-standard) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lumen-thinking-dots span {
     animation: none;
@@ -106,7 +164,11 @@ body {
   }
 
   .animate-journal-enter,
-  .animate-journal-drawer {
+  .animate-journal-drawer,
+  .animate-reflect-panel,
+  .animate-reflect-sheet,
+  .animate-reflect-backdrop,
+  .animate-reflect-message {
     animation: none;
   }
 }

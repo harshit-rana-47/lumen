@@ -1,6 +1,6 @@
 # BUGS.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 3)
+Last updated: 2026-08-30 (Phase 2 Slice 4)
 
 Structured bug register. **Do not delete** historical entries after fix.
 
@@ -175,7 +175,8 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-018 | Medium | Open | Account delete removes DB rows but does not purge Storage objects (`journal-media`, `user-exports`) |
 | BUG-019 | Low | Open | `stopPgBoss()` exists but process SIGTERM/SIGINT hooks are not wired for graceful worker/API shutdown |
 | BUG-021 | Medium | Fixed (Slice 3) | Journal autosave ran on a 10s timer tied to `save` identity; felt sluggish and easy to leave unsaved — now 2.5s idle debounce on draft signature |
-| BUG-022 | Low | Open | Journal still stores Lexical as plain text only — rich formatting commands affect display until reload loses structure |
+| BUG-022 | Low | Open | Journal still stores Lexical as plain text only — Reflect does **not** require rich JSON; deferred intentionally (Slice 4) |
+| BUG-023 | Low | Open | Reflection session association uses `chat_sessions.title = reflect:<entryId>` rather than a dedicated FK — adequate for V1; reconsider if sessions need multi-entry tooling |
 
 ### BUG-012 (Phase 1.75 reconfirmation)
 

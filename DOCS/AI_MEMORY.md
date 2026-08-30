@@ -1,6 +1,6 @@
 # AI_MEMORY.md
 
-Last updated: 2026-08-30 (Phase 1.5)
+Last updated: 2026-08-30 (Phase 2 Slice 4)
 
 ## Pipeline (implemented)
 
@@ -27,7 +27,9 @@ Insights: `insights.nightly` scheduled via pg-boss (`0 2 * * *`).
 | `general` | Semantic memories + semantic (or recent fallback) journals |
 | `reflection` | **Pinned entry authoritative** + memories + other relevant journals |
 
-Chat passes `pinnedEntryId` / session mode into context. Reflect **UI** still planned.
+Chat / Reflect pass `pinnedEntryId` into `buildSystemContext`. Reflect UI (Slice 4) always sends the open journal entry id on each message; switching entries clears the panel so the pin cannot go stale.
+
+Dear Diary chrome is never included in pinned entry text (body is decrypted journal content only).
 
 ## What replaced Neo4j
 

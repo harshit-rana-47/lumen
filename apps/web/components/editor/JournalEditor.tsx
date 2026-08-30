@@ -19,10 +19,12 @@ import {
 } from "@/hooks/useJournal";
 import { DearDiaryHeading } from "@/components/journal/DearDiaryHeading";
 import { ReflectEntryButton } from "@/components/journal/ReflectEntryButton";
+import { useReflect } from "@/components/journal/ReflectProvider";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { MoodSlider } from "@/components/editor/MoodSlider";
 import { FadeReveal } from "@/components/motion/FadeReveal";
 import { SaveIndicator } from "@/components/motion/SaveIndicator";
+import { archiveReflectSessionForEntry } from "@/hooks/useReflectChat";
 import { usePrefersReducedMotion } from "@/lib/motion/usePrefersReducedMotion";
 import { cn } from "@/lib/cn";
 
@@ -64,6 +66,7 @@ function parseTags(value: string): string[] {
 export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps) {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
+  const { openReflect, isOpen: reflectOpen } = useReflect();
   const [entryId, setEntryId] = useState(initialEntry?.id ?? null);
   const [title, setTitle] = useState(initialEntry?.title ?? "");
   const [body, setBody] = useState(initialEntry?.body ?? "");
@@ -203,6 +206,7 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
     setDeleting(true);
     setError(null);
     try {
+      await archiveReflectSessionForEntry(entryId).catch(() => undefined);
       await deleteJournalEntry(entryId);
       onPersisted?.();
       router.replace("/journal");
@@ -237,7 +241,23 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <SaveIndicator status={status} className="min-w-[4.5rem] justify-end text-foreground/55" />
-            <ReflectEntryButton disabled={!entryId} />
+            <ReflectEntryButton
+              disabled={!entryId}
+              {...(entryId
+                ? {
+                    onReflect: (event: React.MouseEvent<HTMLButtonElement>) =>
+                      openReflect(
+                        {
+                          entryId,
+                          title: title.trim() || null,
+                          entryDate
+                        },
+                        event.currentTarget
+                      )
+                  }
+                : {})}
+              className={cn(reflectOpen && "border-primary/30 bg-primary/[0.06] text-foreground")}
+            />
           </div>
         </div>
       </FadeReveal>

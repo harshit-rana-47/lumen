@@ -1,6 +1,6 @@
 # CODEBASE_MAP.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 3)
+Last updated: 2026-08-30 (Phase 2 Slice 4)
 
 ## Monorepo
 
@@ -23,6 +23,7 @@ Lumen/
 | Auth | `(auth)/*` | `authStore` | `modules/auth` | Auth + `users` | — | scaffold |
 | Today | `(dashboard)/today` | page hooks | journal + daily-log | journals/logs | — | — |
 | Journal | `JournalWorkspace`, `JournalEditor`, Dear Diary | `useJournal` | `modules/journal` | `journal_entries` | embed→memory | journal + encrypt |
+| Reflect | `ReflectProvider`, `ReflectSurface`, button | `useReflectChat` | `modules/chat` + `lib/context` | `chat_sessions` | Groq SSE | context + reflection tests |
 | Chat | chat pages | `useChat` | `modules/chat` + context | chat tables | Groq | context tests |
 | You | `(dashboard)/you` | — | `modules/user` | profile/purge | — | deletion inventory |
 
@@ -36,6 +37,9 @@ Lumen/
 | Journal list | `apps/web/components/journal/JournalEntryList.tsx` |
 | Dear Diary chrome | `apps/web/components/journal/DearDiaryHeading.tsx`, `lib/dearDiary.ts` |
 | Reflect entry (stub) | `apps/web/components/journal/ReflectEntryButton.tsx` |
+| Reflect panel | `ReflectProvider.tsx`, `ReflectSurface.tsx` |
+| Reflect chat hook | `apps/web/hooks/useReflectChat.ts` |
+| Reflect session title | `apps/web/lib/reflectSession.ts` |
 | Journal editor | `apps/web/components/editor/JournalEditor.tsx` |
 | Editor toolbar | `apps/web/components/editor/EditorToolbar.tsx` |
 | Journal hooks | `apps/web/hooks/useJournal.ts` |
