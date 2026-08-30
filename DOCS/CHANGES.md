@@ -1,6 +1,6 @@
 # CHANGES.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 3)
+Last updated: 2026-08-30 (local env stabilization)
 
 Chronological implementation history. Concise.
 
@@ -156,3 +156,13 @@ Chronological implementation history. Concise.
 - **Why:** “Understand me” must stay distinct from Reflect; Chat should feel like Lumen, not a generic chatbot  
 - **Files:** `ChatWindow`, list/empty/input/message, `useChat`, `AppShell`, `chat.service` mode boundary, `context.ts` embed reuse, DOCS  
 - **Tests:** web typecheck PASS; API Jest 18/18 (embed-once assertion)  
+
+---
+
+### Local env stabilization (before Slice 6)
+
+- **Change:** Stabilize `npm run dev` tooling — complete optional Next SWC lockfile entries; `NEXT_IGNORE_INCORRECT_LOCKFILE=1` on web scripts; harden API dotenv to resolve monorepo root `.env`; document real `DATABASE_URL` setup (no invented secrets)  
+- **Why:** Empty `DATABASE_URL` crashed API Zod; Next 16 SWC patcher invoked global Yarn in apps/web and failed registry lookup  
+- **Files:** `package-lock.json`, `apps/web/package.json`, `apps/api/src/config/env.ts`, `DOCS/*`  
+- **Tests:** `npm install` OK; `npm run dev` → web Ready + API listening + `pg-boss started` (no Yarn/SWC error); web typecheck PASS; API typecheck PASS; Jest 18/18; `db:verify` PASS with live URL  
+- **Not included:** Slice 6 Today; middleware→proxy rename; inventing credentials 

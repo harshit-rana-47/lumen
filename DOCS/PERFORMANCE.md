@@ -1,12 +1,12 @@
 # PERFORMANCE.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 5)
+Last updated: 2026-08-30 (local env stabilization)
 
 ## Known bottlenecks / costs (current system)
 
 | Area | Issue | Notes |
 |---|---|---|
-| Embeddings | Local MiniLM model load / inference | Must stay async in workers |
+| Embeddings | Local MiniLM model load / inference | Must stay async in workers; also blocks API cold start health check |
 | Memory extraction | Groq LLM latency | Chained after embed; do not double-enqueue |
 | Chat | Streaming helps perceived latency | Context assembly decrypts memories/journals |
 | Chat context embed | Was 2× MiniLM per turn | **Fixed Slice 5** — one embed shared for memories + journals |
@@ -17,6 +17,7 @@ Last updated: 2026-08-30 (Phase 2 Slice 5)
 | Redis | Queues + rate limit | **Removed**; in-process rate limit; pg-boss for jobs |
 | pg-boss | Postgres jobs | Active; needs healthy `DATABASE_URL` |
 | Chat UI list refresh | Was refetching all sessions after every stream | **Improved Slice 5** — local sidebar bump + messages reload for active session only |
+| Next SWC patch | Spurious Yarn registry calls on monorepo web | **Mitigated** — complete optional SWC lock entries + `NEXT_IGNORE_INCORRECT_LOCKFILE` |
 
 ## Phase 1 fixes that mattered for UX perf/correctness
 
@@ -26,7 +27,8 @@ Last updated: 2026-08-30 (Phase 2 Slice 5)
 
 ## Phase 1.75 / Phase 2 observations
 
-- No live latency measurements (services unreachable) — do not invent numbers.
+- Live services reachable with configured `DATABASE_URL` (2026-08-30 env fix) — still no formal latency SLOs.
 - Journal create enqueues background work (not sync embed/LLM on request path) — good for Phase 2 UX.
 - Account Storage cleanup gap (BUG-018) does not block UI rebuild.
 - General Chat streaming avoids per-token list refetch and per-character animation.
+- API startup waits on MiniLM health embed — expect multi-second cold start before “listening”.

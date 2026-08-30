@@ -165,7 +165,9 @@ Structured bug register. **Do not delete** historical entries after fix.
 |---|---|---|---|
 | BUG-010 | Tooling | Open | `next lint` fails / unusable under Next 16 CLI tooling |
 | BUG-011 | Security | Open | Most mutating routes still service-role; RLS not live-verified |
-| BUG-012 | Ops | Open | Migrations not applied/verified on live project (Supabase DNS ENOTFOUND; DATABASE_URL unset) |
+| BUG-012 | Ops | Partially resolved | Live DB reachable; `db:verify` PASS; applicator vs Supabase `schema_migrations` shape still mismatched |
+| BUG-026 | Tooling | Open | Next 16 deprecates `middleware` file convention in favor of `proxy` — warning only; defer rename |
+| BUG-027 | Tooling | Fixed | Next 16 SWC lockfile patch invoked Yarn (global) under `apps/web` monorepo — fixed lockfile + ignore flag |
 | BUG-013 | Coverage | Open | No live integration tests for queue/RLS |
 | BUG-014 | Product debt | Open | Deferred destinations still routable (`/memory` etc.) but removed from primary nav (Phase 2 Slice 2) |
 | BUG-020 | Low | Open | Minimal landing at `/` — full cinematic landing still planned |
@@ -180,17 +182,42 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-024 | Low | Open | Legacy `ModeSwitcher` / personality modes remain in codebase but are unused by General Chat UI (Slice 5) — remove or revive only with product approval |
 | BUG-025 | Medium | Fixed (Slice 5) | Chat service treated any `pinnedEntryId` as reflection mode even on general sessions — now session.mode owns strategy; pins only applied for reflection sessions |
 
-### BUG-012 (Phase 1.75 reconfirmation)
+### BUG-012 (updated 2026-08-30 — local env stabilization)
 
 | Field | Value |
 |---|---|
 | ID | BUG-012 |
-| Date / phase | 2026-08-30 / Phase 1.75 |
-| Severity | Ops / High for live E2E |
-| Status | Open — **BLOCKED** |
-| Symptom | Cannot migrate, verify RLS, or run live journal→memory→chat pipeline |
-| Root cause | Configured Supabase host DNS ENOTFOUND; `DATABASE_URL` empty in `.env` |
-| Fix | Restore reachable Supabase project; set `DATABASE_URL`; run `db:migrate` + `db:verify` |
-| Files involved | `.env`, Supabase project networking |
+| Date / phase | 2026-08-30 / Phase 1.75 → env fix |
+| Severity | Ops |
+| Status | **Partially resolved** |
+| Symptom (was) | Empty `DATABASE_URL=` → Zod rejects API boot; DNS ENOTFOUND historically blocked migrate/verify |
+| Root cause | Missing/empty local `DATABASE_URL`; unreachable Supabase host in earlier sessions |
+| Fix applied | Operator sets real Supabase Postgres URI in root `.env` (not committed). API env loader also resolves repo-root `.env` from `env.ts`. |
+| Verification (2026-08-30) | API starts; `pg-boss started`; `db:verify` PASS (RLS enabled on core tables). Live `schema_migrations` uses column `version` (1 row) while `db:migrate` expects `id` and 3 SQL files exist — do not claim full applicator parity. |
+| Remaining | Align migration tracker with Supabase vs Lumen applicator; `db:verify` still flags `memory_items` versioning cols missing and `match_*` `security_definer=false` for review |
 | Regression test | `npm -w @lumen/api run db:verify` |
-| Lesson | Do not work around missing cloud env by inventing local infra in verification phases |
+| Lesson | Never invent `DATABASE_URL`; empty string is not “unset fallback” |
+
+### BUG-027 — Next SWC / Yarn lockfile patch (fixed)
+
+| Field | Value |
+|---|---|
+| ID | BUG-027 |
+| Severity | Tooling / High for local web |
+| Status | Fixed |
+| Symptom | `Failed to patch lockfile` / `Failed to get registry from "yarn"` during `next dev` |
+| Root cause | (1) Root `package-lock.json` listed only host `@next/swc-darwin-arm64`, so Next 16 tried to patch missing platform SWC packages. (2) Patcher `getPkgManager(apps/web)` finds no lockfile in `apps/web`, then prefers global Yarn on PATH over npm. Yarn Classic misreads `"packageManager": "npm@10.8.2"`. |
+| Fix | Add all optional `@next/swc-*@16.2.12` entries to root lockfile via `npm view`; set `NEXT_IGNORE_INCORRECT_LOCKFILE=1` on web `dev`/`build` as monorepo safety net. Keep npm canonical — no Yarn migration. |
+| Files | `package-lock.json`, `apps/web/package.json` |
+| Regression | `npm run dev` — no SWC/Yarn patch errors; web Ready |
+
+### BUG-026 — middleware → proxy deprecation (open, non-blocking)
+
+| Field | Value |
+|---|---|
+| ID | BUG-026 |
+| Severity | Tooling / Low |
+| Status | Open — document only |
+| Symptom | Next warns: middleware file convention deprecated; use proxy |
+| Impact | Does **not** block `npm run dev` or auth redirects |
+| Fix | Deferred: rename/refactor when intentionally adopting Next 16 proxy convention — not this slice |

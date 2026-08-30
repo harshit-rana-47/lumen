@@ -2,7 +2,15 @@ import path from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
 
+/**
+ * Monorepo env loading:
+ * 1) cwd `.env` (e.g. if run from repo root)
+ * 2) repo-root `.env` resolved from this file (stable when turbo runs in apps/api)
+ * Existing keys are not overridden by later files (`override: false`).
+ */
+const repoRootEnv = path.resolve(__dirname, "../../../../.env");
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: repoRootEnv, override: false });
 dotenv.config({ path: path.resolve(process.cwd(), "../../.env"), override: false });
 
 const requiredString = z
