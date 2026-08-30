@@ -58,11 +58,16 @@ function decryptJournalRow(row: JournalSummaryRow, dek: string): string {
   return `${row.entry_date} - ${title}: ${truncate(body, 280)}`;
 }
 
-async function getRelevantMemories(userId: string, message: string, dek: string): Promise<string[]> {
-  const queryEmbedding = await embedText(message);
+async function getRelevantMemories(
+  userId: string,
+  message: string,
+  dek: string,
+  queryEmbedding?: number[]
+): Promise<string[]> {
+  const embedding = queryEmbedding ?? (await embedText(message));
   const { data: matches, error } = await supabaseAdmin
     .rpc("match_memories", {
-      query_embedding: queryEmbedding,
+      query_embedding: embedding,
       user_uuid: userId,
       match_count: 15
     })
@@ -136,12 +141,13 @@ async function getRelevantJournalSummaries(
   userId: string,
   message: string,
   dek: string,
-  excludeId?: string
+  excludeId?: string,
+  queryEmbedding?: number[]
 ): Promise<string[]> {
-  const queryEmbedding = await embedText(message);
+  const embedding = queryEmbedding ?? (await embedText(message));
   const { data: matches, error } = await supabaseAdmin
     .rpc("match_journals", {
-      query_embedding: queryEmbedding,
+      query_embedding: embedding,
       user_uuid: userId,
       match_count: 5
     })
@@ -209,13 +215,15 @@ export async function buildSystemContext(
 ): Promise<string> {
   const mode = options.mode ?? "general";
   const dek = await getUserDEK(userId);
+  // One embedding for both memory + journal retrieval (avoid duplicate MiniLM calls).
+  const queryEmbedding = await embedText(message);
 
   const [memories, pinned, journals] = await Promise.all([
-    getRelevantMemories(userId, message, dek),
+    getRelevantMemories(userId, message, dek, queryEmbedding),
     mode === "reflection" && options.pinnedEntryId
       ? getPinnedEntry(userId, options.pinnedEntryId, dek)
       : Promise.resolve(null),
-    getRelevantJournalSummaries(userId, message, dek, options.pinnedEntryId)
+    getRelevantJournalSummaries(userId, message, dek, options.pinnedEntryId, queryEmbedding)
   ]);
 
   const lines = [

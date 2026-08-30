@@ -1,6 +1,6 @@
 # AGENT_CONTEXT — read this first
 
-Last updated: 2026-08-30 (Phase 2 Slice 4 — Reflect)
+Last updated: 2026-08-30 (Phase 2 Slice 5 — General Chat)
 
 ## What Lumen is
 
@@ -8,40 +8,31 @@ Private AI journaling companion. Journal-first loop: write → understand → re
 
 ## Current phase
 
-- **DONE:** Phase 0/1 · 1.5 · 1.75 · Phase 2 motion · Slice 2 nav · Slice 3 Journal · **Slice 4 Reflect panel**
-- **CURRENT:** Phase 2 frontend — next slices: General Chat / Today / You / Landing redesigns
-- Landing (minimal at `/`) vs App (expressive shell) — see `DOCS/FRONTEND.md`
+- **DONE:** … · Slice 3 Journal · Slice 4 Reflect · **Slice 5 General Chat**
+- **CURRENT:** Phase 2 — next: Today / You / Landing redesigns
+- Landing (minimal) vs App (expressive) — see `DOCS/FRONTEND.md`
 
-## Auth routing
+## Two AI experiences (must stay distinct)
 
-- Unauthenticated `/` → public landing  
-- Authenticated `/` → redirect `/today`  
-- V1 nav: **Today · Journal · Chat · You**  
-- Journal full-bleed; Reflect opens from journal entry (not a nav item)
+| Surface | Intent | Context |
+|---|---|---|
+| **General Chat** (`/chat`) | Understand me | `buildSystemContext({ mode: "general" })` — **never** `pinnedEntryId` |
+| **Reflect** (journal entry) | Understand this page | `mode: "reflection"` + `pinnedEntryId` |
 
-## Journal + Reflect
+Shared: chat sessions, encrypted messages, SSE, Groq. Different: context strategy.
 
-- Dear Diary = UI chrome only (never stored / AI)  
-- Reflect = entry action; desktop side panel / mobile sheet  
-- Context: existing `buildSystemContext` with `mode: reflection` + `pinnedEntryId`  
-- Persistence: `chat_sessions` mode=`reflection`, title=`reflect:<entryId>`  
-- Switching entries clears open Reflect (no stale pin)
+## Auth / nav
 
-## Architecture (actual)
-
-Express + Next 16 · Supabase · pg-boss · Groq · MiniLM · encryption  
-
-Live DB migrate/RLS still env-blocked — do not claim RLS live.
+Today · Journal · Chat · You. Journal + Chat full-bleed. Reflect is an entry action.
 
 ## MUST NOT
 
-- Re-add Goals/Timeline/Insights/Memory to primary nav  
-- Put “Dear Diary,” into journal body / embeddings / AI context  
-- Invent a second AI context system for Reflect  
-- Auto-migrate journal storage to Lexical JSON without explicit approval  
-- Redesign Chat/Today/You/Landing in a Reflect-only slice  
-- Lifeless dashboard · AI-slop motion · delay typing for animation  
+- Merge General Chat and Reflect semantic behavior  
+- Send `pinnedEntryId` from General Chat  
+- Put Dear Diary into storage/AI  
+- Redesign Today / You / Landing in this slice  
+- Co-author Cursor trailers on commits  
 
 ## Work on next
 
-General Chat redesign (separate from Reflect), then Today / You / Landing as approved.
+Today redesign (then You / Landing) when instructed.

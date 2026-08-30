@@ -147,3 +147,12 @@ Chronological implementation history. Concise.
 - **Files:** `ReflectProvider`, `ReflectSurface`, `useReflectChat`, `reflectSession`, journal workspace/editor wiring, chat create `title`, DOCS  
 - **Tests:** web typecheck PASS; API Jest 18/18  
 - **Deferred:** Lexical JSON (BUG-022); General Chat redesign  
+
+---
+
+### Phase 2 Slice 5 — General Chat rebuild
+
+- **Change:** Full-bleed General Chat UX; filter out Reflect sessions; force `mode=general`; never send `pinnedEntryId`; ThinkingIndicator + suggested prompts; lighter session refresh; API ignores pins on non-reflection sessions; single embed per context turn  
+- **Why:** “Understand me” must stay distinct from Reflect; Chat should feel like Lumen, not a generic chatbot  
+- **Files:** `ChatWindow`, list/empty/input/message, `useChat`, `AppShell`, `chat.service` mode boundary, `context.ts` embed reuse, DOCS  
+- **Tests:** web typecheck PASS; API Jest 18/18 (embed-once assertion)  

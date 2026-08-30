@@ -48,7 +48,7 @@ Every journal entry UI must show a permanent bold **“Dear Diary,”** heading 
 - Pinned entry = authoritative context; other memories/journals supportive  
 - Same AI stack as General Chat; different context strategy  
 
-**Status:** API context modes (`general` | `reflection` + `pinnedEntryId`) exist. Reflect **panel UI implemented** (Slice 4).
+**Status:** API context modes (`general` | `reflection` + `pinnedEntryId`) exist. Reflect panel + General Chat UI implemented (Slices 4–5).
 
 ## V1 scope
 
@@ -60,9 +60,9 @@ Out of scope for V1 (deferred): habits tracker, voice/image entries, collaborati
 
 V1 nav **Today · Journal · Chat · You** is live (`AppShell` / `lib/nav.ts`). Deferred destinations (`/memory`, `/insights`, `/goals`, `/timeline`) remain routable if bookmarked.
 
-Journal Slice 3: writing-first workspace + Dear Diary chrome implemented. Reflect Slice 4: contextual panel/sheet from the entry.
+Journal Slice 3 + Reflect Slice 4 + General Chat Slice 5 implemented.
 
-Today / Chat / You / Landing still use transitional page UIs pending later slices.
+Today / You / Landing still use transitional page UIs pending later slices.
 
 ## Visual + motion identity (Phase 2)
 

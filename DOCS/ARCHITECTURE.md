@@ -58,6 +58,7 @@ BullMQ, Redis, and Neo4j are **removed**.
 | Next server actions flatten | **planned** | See remaining migration below |
 | Dear Diary chrome | **implemented** | UI-only; not stored |
 | Reflect panel UI | **implemented** | Desktop panel + mobile sheet; pinnedEntryId |
+| General Chat UI | **implemented** | Full-bleed; general mode only |
 | Graph viz / Timeline / Habits | **deferred** | |
 
 ---

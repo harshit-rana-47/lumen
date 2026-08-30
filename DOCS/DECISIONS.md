@@ -14,7 +14,9 @@ Important product/technical decisions and rationale. Do not reopen without stron
 | V1 nav: Today · Journal · Chat · You | Focus; defer secondary surfaces | **Implemented** (Slice 2) |
 | Dear Diary as UI chrome only | Brand ritual without polluting storage/AI | **Implemented** (Slice 3) |
 | Reflect = entry action + panel | Keep writing dominant; shared AI, different context | **Implemented** (Slice 4) |
-| Reflect persistence via chat_sessions | Reuse encrypted chat infra; title `reflect:<entryId>` associates session | **Implemented** (Slice 4) — no new tables |
+| Reflect persistence via chat_sessions | Reuse encrypted chat; title `reflect:<entryId>` | **Implemented** (Slice 4) |
+| General Chat never honors stray pins | Session mode owns strategy; pins only for `reflection` sessions | **Implemented** (Slice 5) |
+| One embed per chat turn | Share MiniLM vector across memory + journal retrieval | **Implemented** (Slice 5) |
 | Journal autosave ~2.5s idle | Balance freshness vs request spam / typing cost | **Implemented** (was 10s) |
 | Landing cinematic vs app expressive | Same identity; different motion density/role | **Approved** (Phase 2 correction) — app must stay alive/tactile |
 | Unified Lumen motion system | Coherence; GSAP for complex; CSS for simple | **Approved**; tokens/primitives in progress |

@@ -1,6 +1,6 @@
 # BUGS.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 4)
+Last updated: 2026-08-30 (Phase 2 Slice 5)
 
 Structured bug register. **Do not delete** historical entries after fix.
 
@@ -177,6 +177,8 @@ Structured bug register. **Do not delete** historical entries after fix.
 | BUG-021 | Medium | Fixed (Slice 3) | Journal autosave ran on a 10s timer tied to `save` identity; felt sluggish and easy to leave unsaved — now 2.5s idle debounce on draft signature |
 | BUG-022 | Low | Open | Journal still stores Lexical as plain text only — Reflect does **not** require rich JSON; deferred intentionally (Slice 4) |
 | BUG-023 | Low | Open | Reflection session association uses `chat_sessions.title = reflect:<entryId>` rather than a dedicated FK — adequate for V1; reconsider if sessions need multi-entry tooling |
+| BUG-024 | Low | Open | Legacy `ModeSwitcher` / personality modes remain in codebase but are unused by General Chat UI (Slice 5) — remove or revive only with product approval |
+| BUG-025 | Medium | Fixed (Slice 5) | Chat service treated any `pinnedEntryId` as reflection mode even on general sessions — now session.mode owns strategy; pins only applied for reflection sessions |
 
 ### BUG-012 (Phase 1.75 reconfirmation)
 

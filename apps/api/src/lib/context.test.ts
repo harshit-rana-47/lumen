@@ -87,8 +87,10 @@ describe("context assembly modes", () => {
   it("builds general mode without pinned entry section", async () => {
     jest.resetModules();
 
+    const embedText = jest.fn(async () => Array(384).fill(0));
+
     jest.doMock("../config/embeddings", () => ({
-      embedText: jest.fn(async () => Array(384).fill(0))
+      embedText
     }));
     jest.doMock("../lib/userDEK", () => ({
       getUserDEK: jest.fn(
@@ -108,5 +110,6 @@ describe("context assembly modes", () => {
 
     expect(context).toContain("Mode: General chat.");
     expect(context).not.toContain("Pinned journal entry:");
+    expect(embedText).toHaveBeenCalledTimes(1);
   });
 });

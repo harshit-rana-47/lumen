@@ -153,6 +153,10 @@ body {
   animation: reflect-message-in var(--motion-interaction) var(--ease-standard) both;
 }
 
+.animate-chat-message {
+  animation: reflect-message-in var(--motion-interaction) var(--ease-standard) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lumen-thinking-dots span {
     animation: none;
@@ -168,7 +172,8 @@ body {
   .animate-reflect-panel,
   .animate-reflect-sheet,
   .animate-reflect-backdrop,
-  .animate-reflect-message {
+  .animate-reflect-message,
+  .animate-chat-message {
     animation: none;
   }
 }

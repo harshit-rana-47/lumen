@@ -59,12 +59,9 @@ function decryptChatMessage(row: ChatMessageRow, dek: string) {
   };
 }
 
-function toContextMode(mode: ChatMode, pinnedEntryId?: string): ContextMode {
-  if (pinnedEntryId || mode === "reflection") {
-    return "reflection";
-  }
-
-  return "general";
+function toContextMode(mode: ChatMode): ContextMode {
+  // Session mode owns the strategy. A stray pinnedEntryId must never flip General Chat.
+  return mode === "reflection" ? "reflection" : "general";
 }
 
 export class ChatService {
@@ -164,13 +161,14 @@ export class ChatService {
     }
 
     const dek = await getUserDEK(userId);
-    const contextMode = toContextMode(session.mode, input.pinnedEntryId);
+    const contextMode = toContextMode(session.mode);
     const contextOptions: Parameters<typeof buildSystemContext>[2] = {
       mode: contextMode,
       message: input.content
     };
 
-    if (input.pinnedEntryId) {
+    // Only Reflect sessions may pin an entry. General Chat never sends/uses a pin.
+    if (contextMode === "reflection" && input.pinnedEntryId) {
       contextOptions.pinnedEntryId = input.pinnedEntryId;
     }
 

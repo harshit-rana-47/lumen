@@ -114,9 +114,10 @@ Permanent bold **“Dear Diary,”** above the writing canvas.
 
 ### AI Chat (General + Reflect)
 
-- Shared API / encryption / SSE
-- Modes differ only by context strategy (`general` vs `reflection` + pin)
-- General Chat page UI still transitional (not redesigned in Slice 4)
+- Shared API / encryption / SSE / Groq
+- **General Chat (Slice 5):** full-bleed `/chat`; conversation list; empty-state prompts; `ThinkingIndicator`; no personality ModeSwitcher; never `pinnedEntryId`
+- **Reflect (Slice 4):** journal-anchored panel/sheet; always pins current entry
+- Modes differ only by context strategy — do not merge semantics
 
 ### Navigation (Today · Journal · Chat · You)
 
@@ -351,5 +352,6 @@ PageTransition, ThinkingIndicator (shell loading), CSS token transitions for act
 | V1 nav shell + page transitions | **Implemented** |
 | Journal + Dear Diary chrome | **Implemented** |
 | Reflect panel choreography | **Implemented** |
+| General Chat rebuild | **Implemented** |
 | Landing cinematic | Planned (minimal landing exists) |
-| Today / Chat / You redesign | Planned |
+| Today / You redesign | Planned |
