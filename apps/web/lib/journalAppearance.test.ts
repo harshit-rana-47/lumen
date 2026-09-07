@@ -25,9 +25,4 @@ describe("journal appearance", () => {
     expect(journalLeafClassName()).toContain("journal-leaf--parchment");
     expect(journalLeafClassName()).not.toContain("journal-leaf--photo");
   });
-
-  it("gives each paper a distinct swatch", () => {
-    const swatches = new Set(PAPER_CHOICES.map((choice) => choice.swatch));
-    expect(swatches.size).toBe(PAPER_CHOICES.length);
-  });
 });

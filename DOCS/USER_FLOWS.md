@@ -1,8 +1,15 @@
 # USER_FLOWS.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 5)
+Last updated: 2026-09-04 (Copy clarity pass)
 
-Describes **current** flows after General Chat Slice 5.
+Describes **current** flows after General Chat Slice 5 + landing Slice B + copy pass.
+
+## Public landing (`/`)
+
+1. Unauthenticated visitor opens `/` → **Lamp Circle** landing (visual story: Arrival → Essence → Writing → Memory → Reflect → Chat → Privacy → CTA)  
+2. Copy states Lumen is an **AI journaling companion**; CTAs are **Start journaling** / **Create your journal** / Log in  
+3. Authenticated visitor hitting `/` → middleware redirects to `/today` (landing skipped)  
+4. Reduced motion: same narrative without pin/scrub; static light pool  
 
 ## Register
 
@@ -20,9 +27,11 @@ Describes **current** flows after General Chat Slice 5.
 
 ## Write journal
 
-1. Journal workspace → new/open entry → Lexical under Dear Diary chrome  
-2. Autosave ~2.5s → create/update journal API (encrypted plain text)  
-3. Embed → memory pipeline (pg-boss)  
+1. `/journal` is the library (years if needed → months → days → pages). Empty periods are omitted. **New entry** opens the notepad.  
+2. Opening a page is read-first. **Edit** goes to `?edit=1`.  
+3. Autosave ~2.5s stores an encrypted document: Lexical JSON + plaintext for embeddings/memory.  
+4. Pictures upload to `journal-media` via signed URL; entry delete removes storage + media rows and supersedes auto-memories.  
+5. Today’s activity calendar with one entry opens that page; several entries stay on `/journal?date=` to choose.
 
 ## General Chat (Slice 5)
 
@@ -38,7 +47,7 @@ Empty state offers functional suggested prompts that send real messages.
 ## Reflect on this (Slice 4)
 
 1. Open a saved journal entry  
-2. Press **Reflect on this**  
+2. Press **Reflect on entry**  
 3. Desktop: side panel; journal stays visible. Mobile: bottom sheet  
 4. Session `mode=reflection`, `title=reflect:<entryId>`  
 5. Each message includes `pinnedEntryId`  
@@ -47,11 +56,16 @@ Empty state offers functional suggested prompts that send real messages.
 
 **Deletion:** Soft-delete journal → best-effort archive of reflection session.
 
-## Daily check-in
+## Today’s Thread
 
-**Deprecated as Today hero.** Planned replacement: **Today’s Thread (Continuum)** — see `FRONTEND.md`.  
+1. Open `/today` after auth  
+2. See greeting + plain explanation of Today’s Thread  
+3. Invitation (insight summary if present, else latest-entry or empty-journal copy)  
+4. Optional excerpt of latest entry  
+5. Primary CTA → **Continue writing** (`/journal/:id`) or **Start writing** (`/journal/new`)  
+6. Quiet streak / today count in footer — not a dashboard  
 
-Legacy path (if still wired): Today sliders → `PUT /api/v1/daily-log` — do not center product on this.
+Daily Check-In sliders are **removed** from Today (API `PUT /daily-log` may still exist unused by this UI).
 
 ## Delete account
 

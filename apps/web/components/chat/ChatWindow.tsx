@@ -9,6 +9,7 @@ import { ChatMessage } from "./ChatMessage";
 import { ThinkingIndicator } from "@/components/motion";
 import { useChat } from "@/hooks/useChat";
 import { usePrefersReducedMotion } from "@/lib/motion/usePrefersReducedMotion";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/cn";
 
 export function ChatWindow() {
@@ -24,11 +25,14 @@ export function ChatWindow() {
     error,
     clearError,
     sendMessage,
-    startNewChat
+    startNewChat,
+    deleteSession
   } = useChat();
 
   const reduced = usePrefersReducedMotion();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const conversationHeadingRef = useRef<HTMLHeadingElement>(null);
 
@@ -73,6 +77,7 @@ export function ChatWindow() {
           loading={sessionsLoading}
           onSelect={handleSelect}
           onNewChat={startNewChat}
+          onDelete={setPendingDeleteId}
           className="min-h-0 flex-1"
         />
       </aside>
@@ -100,6 +105,7 @@ export function ChatWindow() {
                 startNewChat();
                 setHistoryOpen(false);
               }}
+              onDelete={setPendingDeleteId}
               onClose={() => setHistoryOpen(false)}
               className="min-h-0 flex-1"
             />
@@ -117,7 +123,9 @@ export function ChatWindow() {
             >
               Chat
             </h1>
-            <p className="truncate text-xs text-foreground/50 sm:text-sm">Understand you across your writing</p>
+            <p className="truncate text-xs text-foreground/50 sm:text-sm">
+              A conversation using context from your journal
+            </p>
           </div>
           <button
             type="button"
@@ -152,7 +160,7 @@ export function ChatWindow() {
             </div>
           ) : null}
 
-          {error ? (
+          {error && !sessionsLoading && !messagesLoading ? (
             <div
               className="rounded-xl border border-[hsl(var(--accent)/0.35)] bg-[hsl(var(--accent)/0.08)] px-3 py-3"
               role="alert"
@@ -171,6 +179,30 @@ export function ChatWindow() {
 
         <ChatInput disabled={streaming} onSend={(content) => sendMessage(content)} />
       </section>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this conversation?"
+        description="The conversation will be removed from Chat. Journal pages used as context are not deleted."
+        confirmLabel="Delete conversation"
+        danger
+        busy={deleting}
+        onCancel={() => {
+          if (!deleting) {
+            setPendingDeleteId(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!pendingDeleteId) {
+            return;
+          }
+          setDeleting(true);
+          void deleteSession(pendingDeleteId).finally(() => {
+            setDeleting(false);
+            setPendingDeleteId(null);
+          });
+        }}
+      />
     </div>
   );
 }

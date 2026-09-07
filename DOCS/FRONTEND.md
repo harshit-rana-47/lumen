@@ -1,14 +1,35 @@
 # FRONTEND.md
 
-Last updated: 2026-08-31 (Visual Rebuild **Slice A complete** — await Slice B approval)
+Last updated: 2026-09-07 (cleanup: motion primitives match code)
 
 ## Status
 
-Phase 2 functional slices established contracts and IA. Visual rebuild is in progress.
+- **Slice A:** motion/primitives baseline  
+- **Slice B:** Lamp Circle cinematic landing  
+- **Slice C:** App + auth adopt Lamp Circle room identity (calmer than landing)  
+- **Copy pass:** User-facing language is concrete; Lamp Circle metaphors stay in art direction  
+- **Do not start next slice** until approved  
+- Stability + Performance Pass (2026-09-05): `STABILITY_DEBUGGING.md`  
 
-- **Slice A complete:** tokens, ambient language, typography hierarchy, motion system, primitives, `/design-system` verification page.
-- **Do not start Slice B (landing)** until explicitly approved.
-- Non-negotiables: cinematic landing later; equal app craft; purposeful motion; shared vocabulary; Continuum ≠ check-in; writing perf sacred; mobile choreography; perf budget; reduced-motion; visual QA per slice.
+### App vs landing
+
+| | Landing | App |
+|---|---|---|
+| Role | Enter the private room | Live inside the private room |
+| Motion | Cinematic / scrub | Micro + interaction + light transitions |
+| Palette | Landing-scoped `.lumen-landing` | Global `:root` room tokens |
+
+### App token roles (Slice C)
+
+| Token | Role |
+|---|---|
+| `--background` / `--surface` | Near-black room chrome |
+| `--foreground` / `--ink-*` | Ivory text on chrome |
+| `--page` / `--page-ink` | Parchment writing plane + dark readable ink |
+| `--primary` / `--ember` | Amber light — actions, focus, active nav |
+| `--primary-foreground` | Dark ink on amber controls |
+
+Amber is light, not wallpaper. Writing ink stays comfortable (`--page-ink`), never yellow.
 
 ---
 
@@ -17,7 +38,7 @@ Phase 2 functional slices established contracts and IA. Visual rebuild is in pro
 - Next.js **16** App Router (`apps/web`)
 - React 18 + TypeScript
 - Tailwind + design tokens in `globals.css`
-- Lexical editor (plain-text persistence still)
+- Lexical editor (document envelope: Lexical JSON + plaintext for workers)
 - Zustand + Axios → Express
 - **GSAP** + `@gsap/react` + ScrollTrigger for cinematic / structural choreography
 - CSS transforms/opacity for micro + most tactile motion
@@ -136,29 +157,38 @@ One physics system. Shared easings: soft ease-out entrances; slightly snappier p
 
 ### Primitive set (Slice A — expand / rename as needed)
 
-`RevealText`, `ScrollReveal`, `StaggerGroup`, `MagneticButton`, `ParallaxLayer`, `AmbientBackground`, `PageTransition`, `PanelTransition`, `SpringPress`, `HoverLift` (sparingly), `ActiveIndicator`, `ThinkingIndicator`, `SaveIndicator`, `FloatingElement` (landing only), `SectionHeading`, `MotionLink`.
+`RevealText`, `ScrollReveal`, `StaggerReveal`, `MagneticButton`, `AmbientBackground`, `PageTransition`, `SpringPress`, `HoverLift` (sparingly), `ActiveIndicator`, `ThinkingIndicator`, `SaveIndicator`, `FloatingElement` (landing only), `SectionHeading`, `MotionLink`.
 
 ---
 
-## Landing page storyboard (`/`)
+## Landing page storyboard (`/`) — **redesigned (Slice B — Lamp Circle)**
 
-Full-bleed storytelling. Not a SaaS feature grid.
+Source: `apps/web/components/landing/LandingExperience.tsx`, `useLandingChoreography.ts`, `landing.css`.
+
+**Landing copy (clarity pass):** Arrival answers *what is this* (AI journaling companion). Journal / Memory / Reflect / Chat / Privacy / CTA answer what you can do, what is different from notes, how Reflect vs Chat differ, what happens to data, and **Start journaling / Create your journal**. Visual Lamp Circle storytelling is unchanged.
+
+**Rejected concepts (research):**
+1. **Candle chamber** — intimate, but risks spa/romance cliché and weaker product fit than a lamp+notebook.
+2. **Ember field / abstract light** — cinematic, but too gallery-abstract; less “journaling companion.”
+
+Landing palette is **scoped** (`.lumen-landing`) so global Slice A app tokens stay intact until later slices deliberately adopt the new world.
 
 | Beat | Scroll / time | Visual | Motion |
 |---|---|---|---|
-| 0 Arrival | load | Quiet paper; optional soft grain | Brand mark opacity + slight scale settle |
-| 1 Identity | hold | **Lumen** as hero signal | Masked / split display reveal |
-| 2 Promise | short | One line: private companion for writing & memory | Stagger words; no secondary clutter |
-| 3 Atmosphere | ambient | Lamp wash / depth layers | Slow parallax; cursor-reactive light (desktop) |
-| 4 The page | pin | Dear Diary + empty writing plane | Morph from abstract → journal UI silhouette |
-| 5 Writing | scrub | Words appear as if handwritten/typed | Scrubbed text ingress; no fake AI yet |
-| 6 Memory | pin/scrub | Fragments / past lines soft-focus behind | Opacity layers; “what matters settles” |
-| 7 Reflect | spatial | Companion panel enters from margin | Same language as in-app Reflect |
-| 8 Chat | brief | Wider conversation silhouette | Distinct from Reflect (no pin metaphor) |
-| 9 Privacy | calm | Encryption / private room metaphor — elegant, not shield icons spam | Soft dim + focused copy |
-| 10 CTA | end | Begin / Log in | Magnetic primary; continuous background into auth |
+| 0 Arrival | load | Near-black room; lamp wakes; ember glow | CSS vars `--light-*` ramp; organic flame breathe; ivory type |
+| 1 Identity | first viewport | **Lumen** in the circle of light | `RevealText` + hero settle |
+| 2 Essence | short | Living notebook under private lamp | `ScrollReveal` |
+| 3–6 Story pin (desktop) | ~3.8× viewport scrub | Notebook in light: write → memory chips in penumbra → Reflect panel → Chat dark room-in-page | Pin + scrub; light x/y/spread/intensity react per chapter; lamp parallax |
+| 7 Privacy | calm | Light held inward | Honest privacy copy (encryption at rest, account scope, AI reads saved writing, export/delete) |
+| 8 CTA | end | Ember CTA in dimmed room | Magnetic primary |
 
-Mobile: shorter pins, less parallax, no magnetic; same story compressed.
+### Choreography decisions
+
+- **Techniques chosen:** fixed environmental layers; CSS-variable light system scrubbed by GSAP; pin/scrub notebook; flame CSS ambient (not WebGL).  
+- **Rejected:** Three.js/WebGL (not required for metaphor), particle fields, purple AI look, paper/sage landing continuation.  
+- **Mobile:** lamp recentered overhead; stacked chapters; page-level light scrub still runs.  
+- **Reduced motion:** `.lumen-landing--reduced` static brighter pool; full narrative stack; flame animation off.  
+- **Perf:** transform/opacity + CSS vars only; `gsap.context` cleanup; no scroll React state.
 
 ---
 
@@ -171,7 +201,7 @@ Mobile: shorter pins, less parallax, no magnetic; same story compressed.
 | **Journal** | Editor, Dear Diary, list, autosave | Physical page; focus elevates plane; list↔editor spatial; no typing jank |
 | **Reflect** | Panel + pin contract | Companion enters from the page’s margin; messages breathe; thinking is alive but soft |
 | **Chat** | General-only, SSE | Conversational room; empty state as invitation; switch conversations with structural motion |
-| **You** | Account/privacy | Belong to Lumen; calm sections; clear destructive flows |
+| **You** | Account, privacy, data | Identity-first room; grouped cards; dark danger zone |
 | **Auth** | Existing API auth | Continuous world from landing; focused forms; success → app threshold |
 
 ---
@@ -182,7 +212,7 @@ Mobile: shorter pins, less parallax, no magnetic; same story compressed.
 
 | Keep | Rework | Delete / replace |
 |---|---|---|
-| Brand name, CTA intents, auth redirects | Entire composition → cinematic storyboard | Generic two-button SaaS hero as the whole page |
+| Brand name, CTA intents, auth redirects | — | Generic two-button SaaS hero — **replaced in Slice B** by cinematic story |
 
 ### Auth
 
@@ -200,7 +230,7 @@ Mobile: shorter pins, less parallax, no magnetic; same story compressed.
 
 | Keep | Rework | Delete / replace |
 |---|---|---|
-| Route as home, streak/insight *data* if useful | Entire layout around Continuum | **Daily Check-In sliders block**; quick-journal competing with Journal; insights mood-trend `days=35` bug (schema 7/30/90) |
+| Route as home, streak/insight *data* if useful | Entire layout around Continuum | **Daily Check-In sliders block**; quick-journal competing with Journal |
 
 ### Journal / Reflect / Chat
 
@@ -271,7 +301,7 @@ Lock in code:
 | Slice | Scope | Exit criteria |
 |---|---|---|
 | **A** | Art direction tokens + motion system + primitives | Tokens live; storybook-less but demo page or landing stub uses them |
-| **B** | Landing cinematic | Storyboard beats; 60fps intent; reduced-motion path |
+| **B** | Landing cinematic | **Done** — story beats; desktop pin/scrub; mobile stack; reduced-motion path |
 | **C** | Auth continuum | Landing→auth continuity; usable a11y forms |
 | **D** | App shell + nav | Expressive chrome; no IA change |
 | **E** | Today Continuum | Check-in removed from hero; Continuum shipped |

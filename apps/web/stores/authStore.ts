@@ -4,6 +4,10 @@ import type { Session, User } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
 
+export function hasApiSession(session: Session | null | undefined): boolean {
+  return Boolean(session?.access_token);
+}
+
 type AuthState = {
   initialized: boolean;
   loading: boolean;
@@ -14,6 +18,24 @@ type AuthState = {
 };
 
 let authListenerStarted = false;
+
+function sessionToState(session: Session | null): Pick<AuthState, "initialized" | "loading" | "session" | "user"> {
+  if (session) {
+    return {
+      initialized: true,
+      loading: false,
+      session,
+      user: session.user ?? null
+    };
+  }
+
+  return {
+    initialized: true,
+    loading: false,
+    session: null,
+    user: null
+  };
+}
 
 export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
@@ -28,35 +50,27 @@ export const useAuthStore = create<AuthState>((set) => ({
     } = await supabase.auth.getSession();
 
     syncSessionCookies(session);
-    set({
-      initialized: true,
-      loading: false,
-      session,
-      user: session?.user ?? null
-    });
+    set(sessionToState(session));
 
     if (!authListenerStarted) {
       authListenerStarted = true;
-      supabase.auth.onAuthStateChange((_event, nextSession) => {
+      supabase.auth.onAuthStateChange((event, nextSession) => {
+        const current = useAuthStore.getState().session;
+        if (event === "INITIAL_SESSION" && hasApiSession(current) && !hasApiSession(nextSession)) {
+          return;
+        }
         syncSessionCookies(nextSession);
-        set({
-          initialized: true,
-          session: nextSession,
-          user: nextSession?.user ?? null
-        });
+        set(sessionToState(nextSession));
       });
     }
   },
   signOut: async () => {
     await supabase.auth.signOut();
     syncSessionCookies(null);
-    set({
-      session: null,
-      user: null
-    });
+    set(sessionToState(null));
   }
 }));
 
 export function useHasApiSession(): boolean {
-  return useAuthStore((state) => Boolean(state.session));
+  return useAuthStore((state) => state.initialized && hasApiSession(state.session));
 }

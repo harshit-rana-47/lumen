@@ -1,5 +1,6 @@
 import { groqClient, WORKER_MODEL } from "../config/groq";
 import { supabaseAdmin } from "../config/supabase";
+import { insightPeriod } from "../lib/dateKey";
 import { encrypt } from "../lib/encrypt";
 import { getUserDEK } from "../lib/userDEK";
 import { stripJsonMarkdownFences } from "./worker.shared";
@@ -10,6 +11,7 @@ type InsightJobData = {
 
 type UserRow = {
   id: string;
+  timezone: string | null;
 };
 
 type MoodRow = {
@@ -22,12 +24,6 @@ type GeneratedInsight = {
   confidence: number;
   insightType: "mood_pattern" | "growth" | "warning" | "milestone";
 };
-
-function thirtyDaysAgo(): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - 30);
-  return date.toISOString().slice(0, 10);
-}
 
 function sevenDayRollingAverage(rows: MoodRow[]): number | undefined {
   const scores = rows
@@ -65,12 +61,23 @@ function parseInsight(raw: string): GeneratedInsight {
 
 async function getUsersForInsight(userId?: string): Promise<UserRow[]> {
   if (userId) {
-    return [{ id: userId }];
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("id,timezone")
+      .eq("id", userId)
+      .is("deleted_at", null)
+      .maybeSingle<UserRow>();
+
+    if (error) {
+      throw error;
+    }
+
+    return data ? [data] : [];
   }
 
   const { data, error } = await supabaseAdmin
     .from("users")
-    .select("id")
+    .select("id,timezone")
     .is("deleted_at", null)
     .returns<UserRow[]>();
 
@@ -81,14 +88,15 @@ async function getUsersForInsight(userId?: string): Promise<UserRow[]> {
   return data ?? [];
 }
 
-async function getMoodRows(userId: string): Promise<MoodRow[]> {
+async function getMoodRows(userId: string, periodStart: string, periodEnd: string): Promise<MoodRow[]> {
   const { data, error } = await supabaseAdmin
     .from("journal_entries")
     .select("entry_date,mood_score")
     .eq("user_id", userId)
     .is("deleted_at", null)
     .not("mood_score", "is", null)
-    .gte("entry_date", thirtyDaysAgo())
+    .gte("entry_date", periodStart)
+    .lte("entry_date", periodEnd)
     .order("entry_date", { ascending: true })
     .returns<MoodRow[]>();
 
@@ -139,10 +147,13 @@ async function generateInsight(rows: MoodRow[]): Promise<GeneratedInsight | unde
   return insight.confidence >= 0.7 ? insight : undefined;
 }
 
-async function insertInsight(userId: string, insight: GeneratedInsight): Promise<void> {
+async function insertInsight(
+  userId: string,
+  insight: GeneratedInsight,
+  period: { start: string; end: string }
+): Promise<void> {
   const dek = await getUserDEK(userId);
   const encryptedSummary = encrypt(insight.summary, dek);
-  const periodEnd = new Date().toISOString().slice(0, 10);
 
   const { error } = await supabaseAdmin.from("insights").insert({
     user_id: userId,
@@ -150,8 +161,8 @@ async function insertInsight(userId: string, insight: GeneratedInsight): Promise
     summary_encrypted: encryptedSummary.ciphertext,
     iv: encryptedSummary.iv,
     auth_tag: encryptedSummary.authTag,
-    period_start: thirtyDaysAgo(),
-    period_end: periodEnd,
+    period_start: period.start,
+    period_end: period.end,
     confidence: insight.confidence
   });
 
@@ -160,15 +171,16 @@ async function insertInsight(userId: string, insight: GeneratedInsight): Promise
   }
 }
 
-export async function processInsightJob(data: InsightJobData = {}): Promise<void> {
+export async function processInsightJob(data: InsightJobData = {}, now: Date = new Date()): Promise<void> {
   const users = await getUsersForInsight(data.userId);
 
   for (const user of users) {
-    const moodRows = await getMoodRows(user.id);
+    const period = insightPeriod(now, user.timezone);
+    const moodRows = await getMoodRows(user.id, period.start, period.end);
     const insight = await generateInsight(moodRows);
 
     if (insight) {
-      await insertInsight(user.id, insight);
+      await insertInsight(user.id, insight, period);
     }
   }
 }

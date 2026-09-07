@@ -29,17 +29,17 @@ export function AppBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-[hsl(var(--surface))]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
       aria-label="Primary"
     >
       <div className="relative mx-auto grid h-[4.25rem] max-w-lg grid-cols-4 px-1">
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute top-2 h-11 rounded-xl bg-primary/12",
+            "pointer-events-none absolute top-2 h-11 rounded-lumen bg-primary/12",
             reduced
               ? "transition-none"
-              : "transition-[transform,width] duration-[var(--motion-transition)] ease-[var(--ease-standard)]"
+              : "transition-[transform,width] duration-transition ease-lumen"
           )}
           style={{
             width: indicator.width,
@@ -61,8 +61,8 @@ export function AppBottomNav() {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative z-10 flex min-h-[44px] flex-col items-center justify-center gap-1 text-[11px] font-medium outline-none",
-                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
-                active ? "text-primary" : "text-foreground/55"
+                "focus-visible:shadow-focus",
+                active ? "text-primary" : "text-ink-faint"
               )}
             >
               <Icon className="h-5 w-5" aria-hidden />

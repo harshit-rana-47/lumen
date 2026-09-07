@@ -3,6 +3,7 @@ import { env } from "../../config/env";
 import { supabaseAdmin } from "../../config/supabase";
 import { writeAuditLog } from "../../lib/audit";
 import { clearUserDEKCache } from "../../lib/userDEK";
+import { purgeUserStorage, USER_STORAGE_BUCKETS } from "../../lib/userStorage";
 import type { DeleteAccountInput, UpdatePasswordInput, UpdateProfileInput } from "./user.schema";
 
 type UserRow = {
@@ -12,6 +13,8 @@ type UserRow = {
   created_at: string;
   updated_at: string;
 };
+
+export { USER_STORAGE_BUCKETS };
 
 /** Owned rows that must be removed on account deletion. audit_logs are retained. */
 export const USER_DATA_TABLES = [
@@ -147,15 +150,19 @@ export class UserService {
 
   /**
    * Verified account deletion.
-   * Requires confirmation phrase. Deletes owned data, soft-deletes profile,
-   * clears DEK cache, then removes the Auth user. Audit rows are retained.
+   * Requires confirmation phrase. Purges Storage, deletes owned rows,
+   * invalidates sessions, then removes the Auth user. Audit rows are retained.
    */
-  async deleteAccount(userId: string, _input: DeleteAccountInput) {
+  async deleteAccount(userId: string, _input: DeleteAccountInput, accessToken: string) {
     await writeAuditLog({ actorId: userId, action: "user.account.delete.start" });
 
+    await purgeUserStorage(userId);
+
+    const tableErrors: Array<{ table: string; message: string }> = [];
     for (const table of USER_DATA_TABLES) {
       const { error } = await supabaseAdmin.from(table).delete().eq("user_id", userId);
       if (error) {
+        tableErrors.push({ table, message: error.message });
         await writeAuditLog({
           actorId: userId,
           action: "user.account.delete.table_error",
@@ -163,6 +170,12 @@ export class UserService {
           metadata: { message: error.message }
         });
       }
+    }
+
+    if (tableErrors.length > 0) {
+      throw new Error(
+        `Account deletion stopped: could not remove ${tableErrors.map((item) => item.table).join(", ")}`
+      );
     }
 
     const { error: profileError } = await supabaseAdmin
@@ -181,6 +194,15 @@ export class UserService {
     }
 
     clearUserDEKCache(userId);
+
+    const { error: signOutError } = await supabaseAdmin.auth.admin.signOut(accessToken);
+    if (signOutError) {
+      await writeAuditLog({
+        actorId: userId,
+        action: "user.account.delete.signout_error",
+        metadata: { message: signOutError.message }
+      });
+    }
 
     await writeAuditLog({ actorId: userId, action: "user.account.delete.complete" });
 

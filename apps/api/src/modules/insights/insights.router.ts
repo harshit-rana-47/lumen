@@ -1,4 +1,5 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router, type Request, type Response } from "express";
+import { asyncHandler } from "../../lib/asyncHandler";
 import { authMiddleware } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
 import {
@@ -11,14 +12,6 @@ import {
   type ReportQuery
 } from "./insights.schema";
 import { insightsService } from "./insights.service";
-
-type AsyncHandler = (request: Request, response: Response, next: NextFunction) => Promise<void> | void;
-
-function asyncHandler(handler: AsyncHandler): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction): void => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 function userId(request: Request): string {
   if (!request.user) {

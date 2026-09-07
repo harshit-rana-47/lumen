@@ -8,6 +8,7 @@ import { ThinkingIndicator } from "@/components/motion";
 import { useReflectChat } from "@/hooks/useReflectChat";
 import { usePrefersReducedMotion } from "@/lib/motion/usePrefersReducedMotion";
 import { cn } from "@/lib/cn";
+import { displayJournalTitle } from "@/lib/journalTitle";
 
 function formatEntryDate(value: string): string {
   const date = new Date(`${value}T12:00:00`);
@@ -41,8 +42,8 @@ function ReflectMessageBubble({
         className={cn(
           "max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-6",
           isUser
-            ? "bg-primary text-white"
-            : "border border-border/70 bg-[hsl(var(--surface))] text-foreground"
+            ? "border border-primary/25 bg-primary/18 text-foreground"
+            : "border border-border/70 bg-surface-elevated text-foreground"
         )}
       >
         {isUser ? (
@@ -75,6 +76,7 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
   const { target, isOpen } = useReflect();
   const reduced = usePrefersReducedMotion();
   const {
+    sessionId,
     messages,
     streaming,
     waitingForFirstToken,
@@ -111,12 +113,11 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
 
   useEffect(() => {
     setDraft("");
-    clearError();
-  }, [target?.entryId, clearError]);
+  }, [target?.entryId]);
 
   async function submit(event?: FormEvent) {
     event?.preventDefault();
-    if (!draft.trim() || streaming) {
+    if (!draft.trim() || streaming || loading || !sessionId) {
       return;
     }
     const content = draft;
@@ -124,7 +125,7 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
     await sendMessage(content);
   }
 
-  const entryLabel = target?.title?.trim() || "Untitled entry";
+  const entryLabel = target ? displayJournalTitle(target) : "This page";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -132,14 +133,15 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p id={titleId} className="font-display text-lg font-semibold tracking-tight text-foreground">
-              Reflect on this
+              Reflect on this entry
             </p>
             <p className="mt-1 truncate text-sm text-foreground/60">
               {entryLabel}
               {target ? ` · ${formatEntryDate(target.entryDate)}` : null}
             </p>
             <p className="mt-1 text-xs text-foreground/45">
-              About what you wrote here — with your broader story as support.
+              Explore what you were feeling, what may have influenced it, or what you might want to understand
+              better.
             </p>
           </div>
           <button
@@ -156,7 +158,7 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
       <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex justify-center py-8">
-            <ThinkingIndicator label="Opening this reflection" />
+            <ThinkingIndicator label="Opening Reflect" />
           </div>
         ) : null}
 
@@ -168,7 +170,8 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
             )}
           >
             <p className="text-sm leading-relaxed text-foreground/70">
-              Ask about this page — what it means, how it connects, or what you might want to notice next.
+              Ask about this entry. Lumen starts from what you wrote here, and may use other journal context
+              when it&apos;s useful.
             </p>
           </div>
         ) : null}
@@ -186,7 +189,7 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
 
         {waitingForFirstToken ? (
           <div className="px-1 py-2">
-            <ThinkingIndicator label="Lumen is reflecting" />
+            <ThinkingIndicator label="Lumen is thinking" />
           </div>
         ) : null}
 
@@ -217,7 +220,7 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
             id="reflect-input"
             rows={2}
             value={draft}
-            disabled={streaming || loading || !target}
+            disabled={streaming || !target}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -225,13 +228,13 @@ function ReflectPanelBody({ onClose, titleId }: ReflectPanelBodyProps) {
                 void submit();
               }
             }}
-            placeholder={streaming ? "Lumen is reflecting…" : "Ask about this entry…"}
+            placeholder={streaming ? "Lumen is thinking…" : "Ask about this entry…"}
             className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-border/70 bg-background px-3 py-2 text-sm leading-5 outline-none transition-[border-color,box-shadow] duration-[var(--motion-micro)] placeholder:text-foreground/40 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
           />
           <button
             type="submit"
-            disabled={streaming || loading || !draft.trim()}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={streaming || loading || !draft.trim() || !sessionId}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground outline-none transition-transform duration-micro active:scale-[0.97] focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Send reflection"
           >
             <Send className="h-4 w-4" />

@@ -19,7 +19,8 @@ export function JournalEmptyState({ className }: JournalEmptyStateProps) {
         Dear Diary,
       </p>
       <p className="mt-4 max-w-md text-base leading-relaxed text-foreground/65">
-        This is your private place to write. Begin when you are ready — Lumen will listen quietly.
+        This is where your pages live. Start one, and Lumen will begin building context from what you
+        choose to share.
       </p>
       <Link
         href="/journal/new"

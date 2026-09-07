@@ -40,8 +40,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           className={cn(
             "rounded-2xl px-4 py-3 text-sm leading-6",
             isUser
-              ? "bg-primary text-white"
-              : "border border-border/70 bg-[hsl(var(--surface))] text-foreground"
+              ? "border border-primary/25 bg-primary/18 text-foreground"
+              : "border border-border/70 bg-surface-elevated text-foreground"
           )}
         >
           {isUser ? (

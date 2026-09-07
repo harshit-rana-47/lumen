@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -34,6 +34,7 @@ type JournalReaderProps = {
 
 export function JournalReader({ entry, onDeleted }: JournalReaderProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const reducedMotion = usePrefersReducedMotion();
   const { openReflect, isOpen: reflectOpen } = useReflect();
   const document = useMemo(() => parseJournalBody(entry.body), [entry.body]);
@@ -50,6 +51,19 @@ export function JournalReader({ entry, onDeleted }: JournalReaderProps) {
   useEffect(() => {
     void refreshMedia().catch(() => undefined);
   }, [refreshMedia]);
+
+  useEffect(() => {
+    if (searchParams.get("reflect") !== "1") {
+      return;
+    }
+
+    openReflect({
+      entryId: entry.id,
+      title: displayJournalTitle(entry),
+      entryDate: entry.entryDate
+    });
+    router.replace(`/journal/${entry.id}`, { scroll: false });
+  }, [entry.entryDate, entry.id, entry.title, entry.plainPreview, openReflect, router, searchParams]);
 
   const backgroundUrl = media.find((item) => item.id === document.appearance?.backgroundMediaId)?.url;
   const initialConfig = useMemo(
@@ -130,7 +144,7 @@ export function JournalReader({ entry, onDeleted }: JournalReaderProps) {
           </FadeReveal>
 
           <div className="mt-8">
-            <DearDiaryHeading className="text-page-ink" />
+            <DearDiaryHeading />
           </div>
 
           <div className="journal-editor mt-4 flex-1">

@@ -1,6 +1,10 @@
 # PERFORMANCE.md
 
-Last updated: 2026-08-30 (local env stabilization)
+Last updated: 2026-09-05 (pointer to Stability + Performance Pass)
+
+**2026-09-05 pass:** Measured journal GET stages, auth `getUser`, Strict Mode duplicate GETs, Groq model 404s, and chat CHECK 500s. Canonical record: `STABILITY_DEBUGGING.md`. Do not treat this file as that postmortem.
+
+---
 
 ## Known bottlenecks / costs (current system)
 
@@ -10,11 +14,13 @@ Last updated: 2026-08-30 (local env stabilization)
 | Memory extraction | Groq LLM latency | Chained after embed; do not double-enqueue |
 | Chat | Streaming helps perceived latency | Context assembly decrypts memories/journals |
 | Chat context embed | Was 2× MiniLM per turn | **Fixed Slice 5** — one embed shared for memories + journals |
+| Auth `getUser` | Per-request JWT validation | **Mitigated 2026-09-05** — 30s in-process cache; first parallel burst still slow |
+| Journal GET audit | Was awaited on read | **Mitigated** — `void writeAuditLog`; `auditMs: 0` |
+| Dev duplicate GETs | React Strict Mode double mount | **Mitigated** — `shareInflight`; do not disable Strict Mode |
 | DEK cache | Process-local 5m TTL | Fine for long-lived Node; not multi-instance serverless |
 | Client pages | Heavy `"use client"` surfaces | Target moves more work to server after flatten |
 | Vector indexes | Not auto-created in migration | Create HNSW/ivfflat after enough rows |
-| Neo4j | Extra hop | **Removed** Phase 1.5 |
-| Redis | Queues + rate limit | **Removed**; in-process rate limit; pg-boss for jobs |
+| Rate limit | In-process `express-rate-limit` | Fine for a single API instance |
 | pg-boss | Postgres jobs | Active; needs healthy `DATABASE_URL` |
 | Chat UI list refresh | Was refetching all sessions after every stream | **Improved Slice 5** — local sidebar bump + messages reload for active session only |
 | Next SWC patch | Spurious Yarn registry calls on monorepo web | **Mitigated** — complete optional SWC lock entries + `NEXT_IGNORE_INCORRECT_LOCKFILE` |

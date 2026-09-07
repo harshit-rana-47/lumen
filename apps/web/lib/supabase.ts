@@ -1,9 +1,16 @@
 "use client";
 
 import { createClient, type Session } from "@supabase/supabase-js";
+import { invalidateApiAuthCache } from "./apiAuthCache";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Set them in the monorepo root .env (loaded via next.config.mjs)."
+  );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -27,6 +34,8 @@ function deleteCookie(name: string): void {
 }
 
 export function syncSessionCookies(session: Session | null): void {
+  invalidateApiAuthCache();
+
   if (typeof document === "undefined") {
     return;
   }

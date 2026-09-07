@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type MutableRefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { $getRoot, type EditorState } from "lexical";
@@ -14,7 +14,11 @@ import { CheckListPlugin } from "@lexical/react/LexicalCheckListPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ChevronDown } from "lucide-react";
-import { parseJournalBody, serializeJournalBody, type JournalAppearance } from "@lumen/shared";
+import {
+  parseJournalBody,
+  serializeJournalBody,
+  type JournalAppearance
+} from "@lumen/shared";
 import {
   createJournalEntry,
   createJournalMediaUpload,
@@ -137,7 +141,6 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
   }, [refreshMedia]);
 
   const backgroundUrl = media.find((item) => item.id === appearance.backgroundMediaId)?.url;
-  const hasBackground = Boolean(appearance.backgroundMediaId);
 
   const initialConfig = useMemo(
     () => journalInitialConfig(`journal-${initialEntry?.id ?? "new"}`, initialEntry?.body, true),
@@ -188,13 +191,11 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
   const persist = useCallback(
     async (options?: { force?: boolean }): Promise<string | null> => {
       const hasContent =
-        plain.trim().length > 0 ||
-        Boolean(appearance.backgroundMediaId) ||
-        lexical.includes('"type":"image"');
+        plain.trim().length > 0 || Boolean(appearance.backgroundMediaId) || lexical.includes('"type":"image"');
       if (signature === lastSaved.current) {
         return entryId;
       }
-      if (!options?.force && !entryId && !hasContent) {
+      if (!options?.force && !hasContent) {
         return entryId;
       }
 
@@ -227,10 +228,7 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
   );
 
   useEffect(() => {
-    if (signature === lastSaved.current) {
-      return;
-    }
-    if (!entryId && !plain.trim() && !appearance.backgroundMediaId) {
+    if (signature === lastSaved.current || !plain.trim()) {
       return;
     }
 
@@ -239,7 +237,7 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
     }, AUTOSAVE_MS);
 
     return () => window.clearTimeout(timeout);
-  }, [appearance.backgroundMediaId, entryId, persist, plain, signature]);
+  }, [persist, plain, signature]);
 
   const onEditorChange = useCallback((editorState: EditorState) => {
     editorState.read(() => {
@@ -298,30 +296,27 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
 
   async function handleBackgroundFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      setError("Choose a picture file.");
       return;
     }
     setImageBusy(true);
-    setError(null);
     try {
       const id = await ensureEntryId();
       if (!id) {
-        throw new Error("Save the page before adding a background.");
+        return;
       }
       const upload = await createJournalMediaUpload(id, file);
       await uploadJournalMediaFile(upload.signedUrl, file);
       setAppearance((current) => ({ ...current, backgroundMediaId: upload.mediaId }));
-      setStatus("idle");
       await refreshMedia();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to set that background.");
     } finally {
       setImageBusy(false);
     }
   }
 
   const surfaceReveal = !reducedMotion;
-  const leafStyle = backgroundUrl ? { backgroundImage: `url(${backgroundUrl})` } : undefined;
+  const leafStyle = backgroundUrl
+    ? { backgroundImage: `url(${backgroundUrl})` }
+    : undefined;
 
   return (
     <JournalMediaProvider
@@ -393,7 +388,7 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
           </FadeReveal>
 
           <FadeReveal duration="transition" delay={0.05} y={8} className="mt-6 shrink-0 sm:mt-8">
-            <DearDiaryHeading className="text-page-ink" />
+            <DearDiaryHeading />
             <span className="sr-only">Dear Diary heading. The editable journal begins below.</span>
           </FadeReveal>
 
@@ -405,7 +400,10 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
           >
             <LexicalComposer initialConfig={initialConfig}>
               <div className="mb-2 opacity-90 transition-opacity duration-[var(--motion-interaction)] focus-within:opacity-100">
-                <EditorToolbar imageBusy={imageBusy} onInsertImage={() => imageInput.current?.click()} />
+                <EditorToolbar
+                  imageBusy={imageBusy}
+                  onInsertImage={() => imageInput.current?.click()}
+                />
               </div>
               <div className="relative journal-editor">
                 <RichTextPlugin
@@ -459,47 +457,50 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
                 <button
                   key={choice.id}
                   type="button"
-                  title={choice.hint}
                   onClick={() => {
                     setAppearance((current) => ({ ...current, paper: choice.id }));
                     setStatus("idle");
                   }}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full border border-page-ink/12 px-3 py-1.5 text-xs text-page-ink/75 outline-none hover:bg-page-ink/8 focus-visible:shadow-focus",
+                    "rounded-full border border-page-ink/12 px-3 py-1.5 text-xs text-page-ink/75 outline-none hover:bg-page-ink/8 focus-visible:shadow-focus",
                     appearance.paper === choice.id && "border-page-ink/35 bg-page-ink/10 text-page-ink"
                   )}
+                  aria-pressed={appearance.paper === choice.id}
                 >
-                  <span
-                    aria-hidden
-                    className="h-2.5 w-2.5 rounded-full border border-page-ink/20"
-                    style={{ backgroundColor: choice.swatch }}
-                  />
                   {choice.label}
                 </button>
               ))}
-              <button
-                type="button"
-                disabled={imageBusy}
-                onClick={() => backgroundInput.current?.click()}
-                className={cn(
-                  "rounded-full border border-page-ink/12 px-3 py-1.5 text-xs text-page-ink/75 outline-none hover:bg-page-ink/8 focus-visible:shadow-focus disabled:opacity-50",
-                  hasBackground && "border-page-ink/35 bg-page-ink/10 text-page-ink"
-                )}
-              >
-                {hasBackground ? "Change picture" : "Background picture"}
-              </button>
-              {hasBackground ? (
+              {appearance.backgroundMediaId ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={imageBusy}
+                    onClick={() => backgroundInput.current?.click()}
+                    className="rounded-full border border-page-ink/35 bg-page-ink/10 px-3 py-1.5 text-xs text-page-ink outline-none hover:bg-page-ink/12 focus-visible:shadow-focus disabled:opacity-40"
+                  >
+                    Change picture
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppearance((current) => ({ paper: current.paper }));
+                      setStatus("idle");
+                    }}
+                    className="rounded-full border border-page-ink/12 px-3 py-1.5 text-xs text-page-ink/75 outline-none hover:bg-page-ink/8 focus-visible:shadow-focus"
+                  >
+                    Remove picture
+                  </button>
+                </>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    setAppearance((current) => ({ paper: current.paper }));
-                    setStatus("idle");
-                  }}
-                  className="rounded-full px-3 py-1.5 text-xs text-page-ink-muted outline-none hover:bg-page-ink/8 hover:text-page-ink focus-visible:shadow-focus"
+                  disabled={imageBusy}
+                  onClick={() => backgroundInput.current?.click()}
+                  className="rounded-full border border-page-ink/12 px-3 py-1.5 text-xs text-page-ink/75 outline-none hover:bg-page-ink/8 focus-visible:shadow-focus disabled:opacity-40"
                 >
-                  Remove picture
+                  Background picture
                 </button>
-              ) : null}
+              )}
             </div>
           </div>
 
@@ -511,7 +512,10 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
               aria-expanded={detailsOpen}
             >
               <ChevronDown
-                className={cn("h-4 w-4 transition-transform duration-interaction", detailsOpen && "rotate-180")}
+                className={cn(
+                  "h-4 w-4 transition-transform duration-interaction",
+                  detailsOpen && "rotate-180"
+                )}
                 aria-hidden
               />
               Details
@@ -634,3 +638,4 @@ export function JournalEditor({ initialEntry, onPersisted }: JournalEditorProps)
     </JournalMediaProvider>
   );
 }
+

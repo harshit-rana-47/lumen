@@ -66,7 +66,7 @@ function ToolButton({
 }: {
   label: string;
   active?: boolean;
-  disabled?: boolean;
+  disabled?: boolean | undefined;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -84,7 +84,7 @@ function ToolButton({
         "hover:bg-page-ink/8 hover:text-page-ink active:scale-[0.96]",
         "focus-visible:ring-2 focus-visible:ring-primary/35",
         "disabled:opacity-40",
-        active && "bg-page-ink/14 text-page-ink shadow-[inset_0_0_0_1px_hsl(var(--page-ink)/0.18)]"
+        active && "bg-page-ink/12 text-page-ink shadow-[inset_0_0_0_1px_hsl(var(--page-ink)/0.16)]"
       )}
     >
       {children}
@@ -99,8 +99,9 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
   const [formats, setFormats] = useState<ToolbarFormatState>(EMPTY_TOOLBAR_STATE);
 
   const syncToolbar = useCallback(() => {
-    const state = editor.getEditorState().read(() => $getToolbarFormatState());
-    setFormats(state);
+    editor.getEditorState().read(() => {
+      setFormats($getToolbarFormatState());
+    });
   }, [editor]);
 
   useEffect(() => {
@@ -195,7 +196,6 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
   const applyTextFormat = useCallback(
     (format: "bold" | "italic" | "underline" | "strikethrough") => {
       editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-      setFormats((current) => ({ ...current, [format]: !current[format] }));
     },
     [editor]
   );
@@ -203,7 +203,6 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
   const applyAlign = useCallback(
     (align: "left" | "center" | "right") => {
       editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, align);
-      setFormats((current) => ({ ...current, align }));
     },
     [editor]
   );
@@ -234,7 +233,7 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         <ToolButton label="Redo" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}>
           <Redo2 className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <span className="mx-1 hidden h-5 w-px bg-page-ink/12 sm:block" aria-hidden />
+        <span className="mx-1 h-5 w-px bg-page-ink/12" aria-hidden />
         <ToolButton label="Bold" active={formats.bold} onClick={() => applyTextFormat("bold")}>
           <Bold className="h-4 w-4" aria-hidden />
         </ToolButton>
@@ -251,7 +250,7 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         >
           <Strikethrough className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <span className="mx-1 hidden h-5 w-px bg-page-ink/12 sm:block" aria-hidden />
+        <span className="mx-1 h-5 w-px bg-page-ink/12" aria-hidden />
         <ToolButton label="Heading" active={formats.heading === "h1"} onClick={() => applyHeading("h1")}>
           <Heading1 className="h-4 w-4" aria-hidden />
         </ToolButton>
@@ -261,7 +260,7 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         <ToolButton label="Quote" active={formats.quote} onClick={applyQuote}>
           <Quote className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <span className="mx-1 hidden h-5 w-px bg-page-ink/12 sm:block" aria-hidden />
+        <span className="mx-1 h-5 w-px bg-page-ink/12" aria-hidden />
         <ToolButton
           label="Bulleted list"
           active={formats.list === "bullet"}
@@ -283,8 +282,12 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         >
           <CheckSquare className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <span className="mx-1 hidden h-5 w-px bg-page-ink/12 sm:block" aria-hidden />
-        <ToolButton label="Align left" active={formats.align === "left"} onClick={() => applyAlign("left")}>
+        <span className="mx-1 h-5 w-px bg-page-ink/12" aria-hidden />
+        <ToolButton
+          label="Align left"
+          active={formats.align === "left"}
+          onClick={() => applyAlign("left")}
+        >
           <AlignLeft className="h-4 w-4" aria-hidden />
         </ToolButton>
         <ToolButton
@@ -301,7 +304,7 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         >
           <AlignRight className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <span className="mx-1 hidden h-5 w-px bg-page-ink/12 sm:block" aria-hidden />
+        <span className="mx-1 h-5 w-px bg-page-ink/12" aria-hidden />
         <ToolButton
           label="Link"
           active={formats.link || linkOpen}
@@ -314,7 +317,7 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
         >
           <LinkIcon className="h-4 w-4" aria-hidden />
         </ToolButton>
-        <ToolButton label="Insert picture" disabled={Boolean(imageBusy)} onClick={onInsertImage}>
+        <ToolButton label="Insert picture" disabled={imageBusy} onClick={onInsertImage}>
           <ImagePlus className="h-4 w-4" aria-hidden />
         </ToolButton>
         <ToolButton
@@ -329,7 +332,6 @@ export function EditorToolbar({ onInsertImage, imageBusy }: EditorToolbarProps) 
             });
             editor.dispatchCommand(REMOVE_LIST_COMMAND, undefined);
             editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-            setFormats(EMPTY_TOOLBAR_STATE);
           }}
         >
           <RemoveFormatting className="h-4 w-4" aria-hidden />

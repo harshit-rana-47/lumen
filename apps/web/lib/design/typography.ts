@@ -15,6 +15,7 @@ export const typeClass = {
 
 export const surfaceClass = {
   paper: "lumen-paper",
+  page: "lumen-page",
   surface: "lumen-surface",
   quiet: "lumen-surface-quiet"
 } as const;

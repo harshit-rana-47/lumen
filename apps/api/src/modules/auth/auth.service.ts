@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../../config/supabase";
+import { supabaseAdmin, supabaseAuth } from "../../config/supabase";
 import { writeAuditLog } from "../../lib/audit";
 import { generateDEK, wrapDEK } from "../../lib/encrypt";
 import type { LoginInput, LogoutInput, RefreshInput, RegisterInput } from "./auth.schema";
@@ -60,7 +60,11 @@ export class AuthService {
 
     if (profileError) {
       await supabaseAdmin.auth.admin.deleteUser(authUser.id);
-      throw profileError;
+      throw new Error(
+        [profileError.message, profileError.details, profileError.hint, profileError.code]
+          .filter(Boolean)
+          .join(" | ")
+      );
     }
 
     await writeAuditLog({
@@ -84,7 +88,7 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
-    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({
       email: input.email,
       password: input.password
     });
@@ -101,7 +105,7 @@ export class AuthService {
   }
 
   async refresh(input: RefreshInput) {
-    const { data, error } = await supabaseAdmin.auth.refreshSession({
+    const { data, error } = await supabaseAuth.auth.refreshSession({
       refresh_token: input.refreshToken
     });
 

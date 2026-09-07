@@ -25,7 +25,7 @@ const tagsSchema = z.array(z.string().trim().min(1).max(48)).max(24).default([])
 
 export const listJournalQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(200).default(20),
   type: journalTypeSchema.optional(),
   startDate: dateSchema.optional(),
   endDate: dateSchema.optional(),
@@ -45,12 +45,12 @@ export const listJournalQuerySchema = z.object({
 
 export const createJournalSchema = z.object({
   title: z.string().trim().max(240).optional(),
-  body: z.string().min(1).max(100_000),
+  body: z.string().min(1).max(400_000),
   type: journalTypeSchema,
   moodScore: z.number().int().min(1).max(10).optional(),
   energyScore: z.number().int().min(1).max(10).optional(),
   tags: tagsSchema,
-  entryDate: dateSchema.optional()
+  entryDate: dateSchema
 });
 
 export const journalIdParamsSchema = uuidSchema;
@@ -63,7 +63,7 @@ export const journalMediaParamsSchema = z.object({
 export const updateJournalSchema = z
   .object({
     title: z.string().trim().max(240).nullable().optional(),
-    body: z.string().min(1).max(100_000).optional(),
+    body: z.string().min(1).max(400_000).optional(),
     moodScore: z.number().int().min(1).max(10).nullable().optional(),
     energyScore: z.number().int().min(1).max(10).nullable().optional(),
     tags: z.array(z.string().trim().min(1).max(48)).max(24).optional(),
@@ -90,6 +90,14 @@ export const calendarJournalQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12)
 });
 
+/**
+ * `end` is the caller's local day (required so the window is not the server UTC day).
+ */
+export const activityJournalQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(400).default(365),
+  end: dateSchema
+});
+
 export const mediaJournalSchema = z.object({
   fileName: z.string().trim().min(1).max(255),
   mediaType: z.enum(["image", "audio", "video"]),
@@ -105,4 +113,6 @@ export type CreateJournalInput = z.infer<typeof createJournalSchema>;
 export type UpdateJournalInput = z.infer<typeof updateJournalSchema>;
 export type SearchJournalQuery = z.infer<typeof searchJournalQuerySchema>;
 export type CalendarJournalQuery = z.infer<typeof calendarJournalQuerySchema>;
+export type ActivityJournalQuery = z.infer<typeof activityJournalQuerySchema>;
 export type MediaJournalInput = z.infer<typeof mediaJournalSchema>;
+export type JournalMediaParams = z.infer<typeof journalMediaParamsSchema>;

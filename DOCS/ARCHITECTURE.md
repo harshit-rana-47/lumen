@@ -1,6 +1,6 @@
 # ARCHITECTURE.md
 
-Last updated: 2026-08-30 (Phase 1.5)
+Last updated: 2026-09-07 (current stack; Express remains)
 
 ## Status legend
 
@@ -37,7 +37,7 @@ Browser (Next.js 16, mostly client)
       → Groq + @xenova/transformers
 ```
 
-BullMQ, Redis, and Neo4j are **removed**.
+The running stack does not include Redis, Neo4j, or a separate queue broker. Jobs use pg-boss on Postgres. Rate limits are in-process.
 
 ---
 
@@ -48,10 +48,10 @@ BullMQ, Redis, and Neo4j are **removed**.
 | Express REST API | **implemented** | Transitional; flatten planned |
 | Next App Router UI | **implemented** (Next 16) | No Server Actions for core product yet |
 | pg-boss jobs | **implemented** | Requires `DATABASE_URL` |
-| Local MiniLM + Groq | **implemented** | |
+| Local MiniLM + Groq | **implemented** | Chat `openai/gpt-oss-120b`; worker `openai/gpt-oss-20b` (`groq.ts`). Model ids are replaceable. |
 | Shared context assembly | **implemented** | `general` \| `reflection` |
 | Envelope encryption | **implemented** | |
-| Schema migrations | **partial** | In repo; **not live-verified** (project DNS down) |
+| Schema migrations | **implemented (ledger)** | Applicator records `version`; `20260830153000` applied 2026-09-06. RLS still partial. |
 | RLS policies | **partial** | SQL ready; **not live-verified** |
 | User-scoped DB client | **partial** | Attached on auth; used for journal list/get |
 | Service-role workers/admin | **implemented** | Required for DEK, purge, jobs |
@@ -59,7 +59,10 @@ BullMQ, Redis, and Neo4j are **removed**.
 | Dear Diary chrome | **implemented** | UI-only; not stored |
 | Reflect panel UI | **implemented** | Desktop panel + mobile sheet; pinnedEntryId |
 | General Chat UI | **implemented** | Full-bleed; general mode only |
-| Graph viz / Timeline / Habits | **deferred** | |
+| Memory graph UI (`/memory`) | **implemented** | Off primary nav (deferred destination) |
+| Timeline route | **stub** | Points people to Journal |
+| Insights / habit heatmap | **implemented** | Off primary nav |
+| Goals | **implemented** | Off primary nav |
 
 ---
 
@@ -72,7 +75,7 @@ Safe next steps (future phase):
 3. Keep pg-boss worker as a separate Node process  
 4. Retire Express when parity is proven  
 
-Complete flattening was judged **too risky** during queue/Neo4j cutover.
+Flattening was deferred because it overlapped an earlier queue cutover.
 
 ---
 

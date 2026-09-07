@@ -127,7 +127,7 @@ async function extractFacts(body: string): Promise<ExtractedFact[]> {
 }
 
 /**
- * Upsert / supersede AI memory into Postgres only (Neo4j removed).
+ * Upsert / supersede AI memory into Postgres.
  * - Skip when confidence < MIN_AI_CONFIDENCE
  * - Never overwrite user_edited active memories (user corrections win)
  * - Otherwise supersede prior active AI row and insert a new active version
@@ -242,3 +242,4 @@ export async function processMemoryJob(data: JournalJobData): Promise<void> {
     throw error;
   }
 }
+

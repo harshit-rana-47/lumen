@@ -6,6 +6,11 @@ import { writeAuditLog } from "../../lib/audit";
 import { enqueueEmbedJob } from "../../lib/queue";
 import { getUserDEK } from "../../lib/userDEK";
 import { supabaseAdmin, type DbClient } from "../../config/supabase";
+import { windowStartDateKey } from "../../lib/dateKey";
+import { foldActivityCounts, type ActivityCountRow } from "../../lib/journalActivity";
+import { httpError } from "../../lib/httpError";
+import { reflectSessionTitle } from "../../lib/reflectSession";
+import { logger } from "../../config/logger";
 import {
   decryptOptionalText,
   decryptRequiredText,
@@ -15,6 +20,7 @@ import {
   serializeEncryptedPayload
 } from "./journal.encrypt";
 import type {
+  ActivityJournalQuery,
   CalendarJournalQuery,
   CreateJournalInput,
   ListJournalQuery,
@@ -49,6 +55,8 @@ type JournalListItem = {
   id: string;
   type: string;
   title: string | null;
+  /** First plaintext excerpt when `title` is empty. Display-only; not a stored title. */
+  plainPreview: string | null;
   moodScore: number | null;
   energyScore: number | null;
   wordCount: number | null;
@@ -77,6 +85,8 @@ const JOURNAL_LIST_SELECT =
 
 const JOURNAL_FULL_SELECT = `${JOURNAL_LIST_SELECT},body_encrypted,iv,auth_tag`;
 const MEDIA_BUCKET = "journal-media";
+const ACTIVITY_PAGE_SIZE = 1000;
+const ACTIVITY_MAX_ROWS = 10_000;
 
 function wordCount(body: string): number {
   return journalPlainText(body).trim().split(/\s+/).filter(Boolean).length;
@@ -91,6 +101,7 @@ function toListItem(row: JournalRow, dek: string): JournalListItem {
     id: row.id,
     type: row.journal_type,
     title: decryptOptionalText(row.title_encrypted, dek),
+    plainPreview: null,
     moodScore: row.mood_score,
     energyScore: row.energy_score,
     wordCount: row.word_count,
@@ -104,6 +115,60 @@ function toListItem(row: JournalRow, dek: string): JournalListItem {
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+}
+
+async function withPlainPreviews(
+  userId: string,
+  items: JournalListItem[],
+  dek: string,
+  db: DbClient
+): Promise<JournalListItem[]> {
+  const untitledIds = items.filter((item) => !item.title).map((item) => item.id);
+  if (untitledIds.length === 0) {
+    return items;
+  }
+
+  const { data, error } = await db
+    .from("journal_entries")
+    .select(JOURNAL_FULL_SELECT)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .in("id", untitledIds)
+    .returns<JournalRow[]>();
+
+  if (error) {
+    throw error;
+  }
+
+  const previewById = new Map<string, string>();
+  for (const row of data ?? []) {
+    if (!row.body_encrypted) {
+      continue;
+    }
+    try {
+      const body = decryptRequiredText(
+        row.body_encrypted,
+        dek,
+        row.iv && row.auth_tag
+          ? {
+              ciphertext: row.body_encrypted,
+              iv: row.iv,
+              authTag: row.auth_tag
+            }
+          : undefined
+      );
+      const plain = journalPlainText(body).trim();
+      if (plain) {
+        previewById.set(row.id, plain.slice(0, 400));
+      }
+    } catch {
+      // Display falls back to the entry date.
+    }
+  }
+
+  return items.map((item) =>
+    item.title ? item : { ...item, plainPreview: previewById.get(item.id) ?? null }
+  );
 }
 
 function toEntry(row: JournalRow, dek: string): JournalEntry {
@@ -146,7 +211,9 @@ export class JournalService {
    * Falls back to service-role admin (still filters by userId).
    */
   async list(userId: string, query: ListJournalQuery, db: DbClient = supabaseAdmin) {
+    const dekStartedAt = Date.now();
     const dek = await getUserDEK(userId);
+    const dekCached = Date.now() - dekStartedAt < 5;
     const from = (query.page - 1) * query.limit;
     const to = from + query.limit - 1;
 
@@ -182,7 +249,7 @@ export class JournalService {
     }
 
     return {
-      entries: (data ?? []).map((row) => toListItem(row, dek)),
+      entries: await withPlainPreviews(userId, (data ?? []).map((row) => toListItem(row, dek)), dek, db),
       page: query.page,
       limit: query.limit,
       total: count ?? 0
@@ -207,7 +274,7 @@ export class JournalService {
         mood_score: input.moodScore ?? null,
         energy_score: input.energyScore ?? null,
         tags: input.tags,
-        entry_date: input.entryDate ?? new Date().toISOString().slice(0, 10),
+        entry_date: input.entryDate,
         word_count: words,
         reading_time_sec: readingTimeSec(words),
         embedding_status: "pending",
@@ -242,8 +309,7 @@ export class JournalService {
       throw error;
     }
 
-    await writeAuditLog({ actorId: userId, action: "journal.read", resource: id });
-
+    void writeAuditLog({ actorId: userId, action: "journal.read", resource: id });
     return toEntry(data, dek);
   }
 
@@ -294,7 +360,7 @@ export class JournalService {
   }
 
   async delete(userId: string, id: string): Promise<{ id: string; deleted: true }> {
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("journal_entries")
       .update({
         deleted_at: new Date().toISOString(),
@@ -302,18 +368,127 @@ export class JournalService {
       })
       .eq("user_id", userId)
       .eq("id", id)
-      .is("deleted_at", null);
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle<{ id: string }>();
 
     if (error) {
       throw error;
     }
 
-    await writeAuditLog({ actorId: userId, action: "journal.delete", resource: id });
+    if (!data) {
+      throw httpError(404, "Journal entry not found");
+    }
+
+    await Promise.all([
+      this.purgeMedia(userId, id),
+      this.archiveDerivedFromEntry(userId, id),
+      writeAuditLog({ actorId: userId, action: "journal.delete", resource: id })
+    ]);
 
     return {
       id,
       deleted: true
     };
+  }
+
+  /**
+   * Soft-delete must not leave readable media, active memories, or Reflect
+   * sessions pointing at the page. Chat used as *context* is not a FK — we
+   * only archive sessions titled `reflect:<entryId>`. General Chat is untouched.
+   *
+   * `memory_items.status` exists in later migrations; older databases only have
+   * `source_entry_id`. Always detach the source. Set `superseded` when present.
+   */
+  private async archiveDerivedFromEntry(userId: string, entryId: string): Promise<void> {
+    const now = new Date().toISOString();
+    const autoMemories = await supabaseAdmin
+      .from("memory_items")
+      .update({
+        status: "superseded",
+        source_entry_id: null,
+        updated_at: now
+      })
+      .eq("user_id", userId)
+      .eq("source_entry_id", entryId)
+      .or("user_edited.is.null,user_edited.eq.false");
+
+    if (autoMemories.error?.message?.includes("status")) {
+      const fallback = await supabaseAdmin
+        .from("memory_items")
+        .update({
+          source_entry_id: null,
+          updated_at: now
+        })
+        .eq("user_id", userId)
+        .eq("source_entry_id", entryId)
+        .or("user_edited.is.null,user_edited.eq.false");
+      if (fallback.error) {
+        throw fallback.error;
+      }
+    } else if (autoMemories.error) {
+      throw autoMemories.error;
+    }
+
+    const editedMemories = await supabaseAdmin
+      .from("memory_items")
+      .update({ source_entry_id: null, updated_at: now })
+      .eq("user_id", userId)
+      .eq("source_entry_id", entryId)
+      .eq("user_edited", true);
+    if (editedMemories.error) {
+      throw editedMemories.error;
+    }
+
+    const reflect = await supabaseAdmin
+      .from("chat_sessions")
+      .update({ is_archived: true, updated_at: now })
+      .eq("user_id", userId)
+      .eq("mode", "reflection")
+      .eq("title", reflectSessionTitle(entryId));
+    if (reflect.error) {
+      throw reflect.error;
+    }
+  }
+
+  private async purgeMedia(userId: string, entryId: string): Promise<void> {
+    const dek = await getUserDEK(userId);
+    const { data, error } = await supabaseAdmin
+      .from("media_attachments")
+      .select("id,s3_key")
+      .eq("user_id", userId)
+      .eq("entry_id", entryId)
+      .returns<Array<{ id: string; s3_key: string }>>();
+
+    if (error) {
+      throw error;
+    }
+
+    const paths: string[] = [];
+    for (const row of data ?? []) {
+      try {
+        paths.push(decrypt(parseEncryptedPayload(row.s3_key), dek));
+      } catch {
+        // Skip undecryptable keys; still drop the row below.
+      }
+    }
+
+    if (paths.length > 0) {
+      const { error: removeError } = await supabaseAdmin.storage.from(MEDIA_BUCKET).remove(paths);
+      if (removeError) {
+        throw removeError;
+      }
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("media_attachments")
+      .delete()
+      .eq("user_id", userId)
+      .eq("entry_id", entryId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
   }
 
   async search(userId: string, query: SearchJournalQuery) {
@@ -359,21 +534,22 @@ export class JournalService {
 
     const rowsById = new Map((rows ?? []).map((row) => [row.id, row]));
 
+    const listed = await withPlainPreviews(
+      userId,
+      semanticMatches.flatMap((match) => {
+        const row = rowsById.get(match.id);
+        return row ? [toListItem(row, dek)] : [];
+      }),
+      dek,
+      supabaseAdmin
+    );
+    const listedById = new Map(listed.map((entry) => [entry.id, entry]));
+
     return {
-      entries: semanticMatches
-        .map((match): (JournalListItem & { similarity: number }) | undefined => {
-          const row = rowsById.get(match.id);
-
-          if (!row) {
-            return undefined;
-          }
-
-          return {
-            ...toListItem(row, dek),
-            similarity: match.similarity
-          };
-        })
-        .filter((entry): entry is JournalListItem & { similarity: number } => entry !== undefined)
+      entries: semanticMatches.flatMap((match) => {
+        const entry = listedById.get(match.id);
+        return entry ? [{ ...entry, similarity: match.similarity }] : [];
+      })
     };
   }
 
@@ -399,6 +575,76 @@ export class JournalService {
       hasEntry: true,
       moodScore: row.mood_score
     }));
+  }
+
+  /**
+   * Per-day entry counts for the activity calendar.
+   *
+   * Reads only the plaintext `entry_date`, so this never touches the user DEK or
+   * decrypts a title/body. Served by journal_entries_user_entry_date_idx.
+   * Only active days are returned; the client fills the empty grid cells.
+   */
+  async activity(userId: string, query: ActivityJournalQuery) {
+    const to = query.end;
+    const from = windowStartDateKey(to, query.days);
+
+    const { data, error } = await supabaseAdmin.rpc("journal_activity_counts", {
+      p_user_id: userId,
+      p_from: from,
+      p_to: to
+    });
+
+    if (!error) {
+      return foldActivityCounts(from, to, (data ?? []) as ActivityCountRow[]);
+    }
+
+    logger.warn({ err: error, userId }, "journal_activity_counts RPC unavailable; paging rows");
+    return this.activityByPaging(userId, from, to);
+  }
+
+  private async activityByPaging(userId: string, from: string, to: string) {
+    const counts = new Map<string, number>();
+    let totalEntries = 0;
+    let offset = 0;
+
+    for (;;) {
+      const { data, error } = await supabaseAdmin
+        .from("journal_entries")
+        .select("entry_date")
+        .eq("user_id", userId)
+        .is("deleted_at", null)
+        .gte("entry_date", from)
+        .lte("entry_date", to)
+        .order("entry_date", { ascending: true })
+        .range(offset, offset + ACTIVITY_PAGE_SIZE - 1)
+        .returns<Array<{ entry_date: string }>>();
+
+      if (error) {
+        throw error;
+      }
+
+      const rows = data ?? [];
+
+      for (const row of rows) {
+        counts.set(row.entry_date, (counts.get(row.entry_date) ?? 0) + 1);
+      }
+
+      totalEntries += rows.length;
+      offset += rows.length;
+
+      if (rows.length < ACTIVITY_PAGE_SIZE || offset >= ACTIVITY_MAX_ROWS) {
+        break;
+      }
+    }
+
+    return {
+      from,
+      to,
+      totalEntries,
+      days: Array.from(counts, ([date, count]) => ({ date, count })).sort((a, b) =>
+        a.date.localeCompare(b.date)
+      )
+    };
   }
 
   async createMediaUpload(userId: string, entryId: string, input: MediaJournalInput) {

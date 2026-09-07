@@ -1,7 +1,9 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router, type Request, type Response } from "express";
+import { asyncHandler } from "../../lib/asyncHandler";
 import { authMiddleware } from "../../middleware/auth";
 import { validate } from "../../middleware/validate";
 import {
+  activityJournalQuerySchema,
   calendarJournalQuerySchema,
   createJournalSchema,
   journalIdParamsSchema,
@@ -10,6 +12,7 @@ import {
   mediaJournalSchema,
   searchJournalQuerySchema,
   updateJournalSchema,
+  type ActivityJournalQuery,
   type CalendarJournalQuery,
   type CreateJournalInput,
   type ListJournalQuery,
@@ -18,14 +21,6 @@ import {
   type UpdateJournalInput
 } from "./journal.schema";
 import { journalService } from "./journal.service";
-
-type AsyncHandler = (request: Request, response: Response, next: NextFunction) => Promise<void> | void;
-
-function asyncHandler(handler: AsyncHandler): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction): void => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 function currentUserId(request: Request): string {
   if (!request.user) {
@@ -102,6 +97,23 @@ journalRouter.get(
     const data = await journalService.calendar(
       currentUserId(request),
       request.query as unknown as CalendarJournalQuery
+    );
+
+    response.json({
+      success: true,
+      data
+    });
+  })
+);
+
+// Must stay above "/:id" so "activity" is not parsed as a journal id.
+journalRouter.get(
+  "/activity",
+  validate({ query: activityJournalQuerySchema }),
+  asyncHandler(async (request: Request, response: Response) => {
+    const data = await journalService.activity(
+      currentUserId(request),
+      request.query as unknown as ActivityJournalQuery
     );
 
     response.json({

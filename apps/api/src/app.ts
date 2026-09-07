@@ -24,10 +24,11 @@ export function createApp(): Express {
   app.use(corsMiddleware);
   app.use(jsonMiddleware);
   app.use(morganMiddleware);
-  app.use(apiLimiter);
 
   app.use(healthRouter);
   app.use("/api/v1", healthRouter);
+
+  app.use(apiLimiter);
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/journal", journalRouter);
   app.use("/api/v1/memory", memoryRouter);

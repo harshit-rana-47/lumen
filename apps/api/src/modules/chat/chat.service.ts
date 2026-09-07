@@ -2,8 +2,15 @@ import type { Response } from "express";
 import { CHAT_MODEL, groqClient } from "../../config/groq";
 import { supabaseAdmin } from "../../config/supabase";
 import { encrypt, decrypt } from "../../lib/encrypt";
+import { titleFromPlain } from "../../lib/journalDocument";
 import { buildSystemContext, type ContextMode } from "../../lib/context";
 import { getUserDEK } from "../../lib/userDEK";
+import { httpError } from "../../lib/httpError";
+import {
+  entryIdFromReflectTitle,
+  reflectSessionTitle,
+  resolveReflectionPinnedEntryId
+} from "../../lib/reflectSession";
 import type {
   ChatMode,
   CreateChatSessionInput,
@@ -82,6 +89,14 @@ export class ChatService {
   }
 
   async createSession(userId: string, input: CreateChatSessionInput) {
+    if (input.mode === "reflection") {
+      const entryId = entryIdFromReflectTitle(input.title ?? null);
+      if (!entryId) {
+        throw httpError(400, "Reflection sessions must be titled reflect:<journal entry id>.");
+      }
+      return this.getOrCreateReflectionSession(userId, entryId);
+    }
+
     const row: Record<string, unknown> = {
       user_id: userId,
       mode: input.mode
@@ -104,18 +119,98 @@ export class ChatService {
     return data;
   }
 
+  /**
+   * One active Reflect conversation per journal entry. Reopening an entry
+   * resumes this session instead of inserting a duplicate.
+   */
+  private async getOrCreateReflectionSession(userId: string, entryId: string): Promise<ChatSessionRow> {
+    const title = reflectSessionTitle(entryId);
+    const existing = await this.findActiveReflectionSession(userId, title);
+    if (existing) {
+      return existing;
+    }
+
+    const { data: journal, error: journalError } = await supabaseAdmin
+      .from("journal_entries")
+      .select("id")
+      .eq("id", entryId)
+      .eq("user_id", userId)
+      .maybeSingle<{ id: string }>();
+
+    if (journalError) {
+      throw journalError;
+    }
+
+    if (!journal) {
+      throw httpError(404, "Journal entry not found");
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("chat_sessions")
+      .insert({
+        user_id: userId,
+        mode: "reflection",
+        title
+      })
+      .select(SESSION_SELECT)
+      .single<ChatSessionRow>();
+
+    if (error?.code === "23505") {
+      const raced = await this.findActiveReflectionSession(userId, title);
+      if (raced) {
+        return raced;
+      }
+    }
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  private async findActiveReflectionSession(userId: string, title: string): Promise<ChatSessionRow | null> {
+    const { data, error } = await supabaseAdmin
+      .from("chat_sessions")
+      .select(SESSION_SELECT)
+      .eq("user_id", userId)
+      .eq("mode", "reflection")
+      .eq("title", title)
+      .eq("is_archived", false)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .returns<ChatSessionRow[]>();
+
+    if (error) {
+      throw error;
+    }
+
+    return data?.[0] ?? null;
+  }
+
+  /**
+   * Archives the conversation only. Journal entries used as retrieval context
+   * are independent and must not be deleted here.
+   */
   async deleteSession(userId: string, sessionId: string) {
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("chat_sessions")
       .update({
         is_archived: true,
         updated_at: new Date().toISOString()
       })
       .eq("id", sessionId)
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .eq("is_archived", false)
+      .select("id")
+      .maybeSingle<{ id: string }>();
 
     if (error) {
       throw error;
+    }
+
+    if (!data) {
+      throw httpError(404, "Conversation not found");
     }
 
     return { id: sessionId, archived: true };
@@ -150,11 +245,11 @@ export class ChatService {
   async streamMessage(userId: string, sessionId: string, input: SendChatMessageInput, response: Response) {
     const { data: session, error: sessionError } = await supabaseAdmin
       .from("chat_sessions")
-      .select("id,user_id,mode")
+      .select("id,user_id,mode,title")
       .eq("id", sessionId)
       .eq("user_id", userId)
       .eq("is_archived", false)
-      .single<{ id: string; user_id: string; mode: ChatMode }>();
+      .single<{ id: string; user_id: string; mode: ChatMode; title: string | null }>();
 
     if (sessionError) {
       throw sessionError;
@@ -167,9 +262,12 @@ export class ChatService {
       message: input.content
     };
 
-    // Only Reflect sessions may pin an entry. General Chat never sends/uses a pin.
-    if (contextMode === "reflection" && input.pinnedEntryId) {
-      contextOptions.pinnedEntryId = input.pinnedEntryId;
+    // Session title owns the journal association. Ignore a mismatched client pin.
+    if (contextMode === "reflection") {
+      const pinnedEntryId = resolveReflectionPinnedEntryId(session.title, input.pinnedEntryId);
+      if (pinnedEntryId) {
+        contextOptions.pinnedEntryId = pinnedEntryId;
+      }
     }
 
     const systemContext = await buildSystemContext(userId, input.content, contextOptions);
@@ -255,10 +353,16 @@ export class ChatService {
       throw insertError;
     }
 
+    const generatedTitle =
+      !session.title?.trim() && toContextMode(session.mode) !== "reflection"
+        ? titleFromPlain(input.content, 48)
+        : null;
+
     await supabaseAdmin
       .from("chat_sessions")
       .update({
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ...(generatedTitle ? { title: generatedTitle } : {})
       })
       .eq("id", sessionId)
       .eq("user_id", userId);

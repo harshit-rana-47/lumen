@@ -5,9 +5,7 @@ import {
   type ElementFormatType,
   type LexicalNode
 } from "lexical";
-import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
-import { $isListItemNode, $isListNode, ListNode } from "@lexical/list";
-import { $findMatchingParent, $getNearestNodeOfType } from "@lexical/utils";
+import { $findMatchingParent } from "@lexical/utils";
 import { $isAutoLinkNode, $isLinkNode } from "@lexical/link";
 
 export type ToolbarAlign = "left" | "center" | "right";
@@ -61,9 +59,9 @@ function $walkAncestors(node: LexicalNode, visit: (current: LexicalNode) => bool
 function $blockAlign(anchorNode: LexicalNode): ToolbarAlign {
   let align: ToolbarAlign = "left";
   $walkAncestors(anchorNode, (current) => {
-    if ($isElementNode(current) && !$isLinkNode(current) && !$isAutoLinkNode(current)) {
+    if ($isElementNode(current) && current.getType() !== "link" && current.getType() !== "autolink") {
       align = alignFromElementFormat(current.getFormatType());
-      return $isListItemNode(current) || $isHeadingNode(current) || $isQuoteNode(current) || current.getType() === "paragraph";
+      return current.getType() === "listitem" || current.getType() === "heading" || current.getType() === "quote" || current.getType() === "paragraph";
     }
     return false;
   });
@@ -71,10 +69,10 @@ function $blockAlign(anchorNode: LexicalNode): ToolbarAlign {
 }
 
 function $listTypeOf(node: LexicalNode): ToolbarList {
-  if (!$isListNode(node)) {
+  if (node.getType() !== "list") {
     return null;
   }
-  const listType = node.getListType();
+  const listType = (node as LexicalNode & { getListType?: () => string }).getListType?.();
   if (listType === "bullet" || listType === "number" || listType === "check") {
     return listType;
   }
@@ -82,10 +80,10 @@ function $listTypeOf(node: LexicalNode): ToolbarList {
 }
 
 function $headingOf(node: LexicalNode): ToolbarHeading {
-  if (!$isHeadingNode(node)) {
+  if (node.getType() !== "heading") {
     return null;
   }
-  const tag = node.getTag();
+  const tag = (node as LexicalNode & { getTag?: () => string }).getTag?.();
   return tag === "h1" || tag === "h2" ? tag : null;
 }
 
@@ -95,7 +93,7 @@ function blockFormatsFromDom(): Pick<ToolbarFormatState, "heading" | "quote" | "
   }
 
   const native = document.getSelection()?.anchorNode ?? null;
-  let element: Element | null = native instanceof Element ? native : (native?.parentElement ?? null);
+  let element: Element | null = native instanceof Element ? native : native?.parentElement ?? null;
   if (element instanceof HTMLElement && element.isContentEditable) {
     const block = [...element.children].find((child) => !child.hasAttribute("data-lexical-cursor"));
     element = block ?? element;
@@ -129,20 +127,28 @@ export function $getToolbarFormatState(): ToolbarFormatState {
   }
 
   const anchorNode = selection.anchor.getNode();
-  const headingNode = $findMatchingParent(anchorNode, $isHeadingNode);
-  const quoteNode = $findMatchingParent(anchorNode, $isQuoteNode);
-  const listNode =
-    $getNearestNodeOfType(anchorNode, ListNode) ?? $findMatchingParent(anchorNode, $isListNode);
+  let heading: ToolbarHeading = fromDom.heading;
+  let quote = fromDom.quote;
+  let list: ToolbarList = fromDom.list;
 
-  const heading = $headingOf(headingNode ?? anchorNode) ?? fromDom.heading;
-  const quote = Boolean(quoteNode) || fromDom.quote;
-  const list = $listTypeOf(listNode ?? anchorNode) ?? fromDom.list;
+  $walkAncestors(anchorNode, (current) => {
+    if (!heading) {
+      heading = $headingOf(current);
+    }
+    if (current.getType() === "quote") {
+      quote = true;
+    }
+    if (!list) {
+      list = $listTypeOf(current);
+    }
+    return false;
+  });
 
   const linkParent = $findMatchingParent(
     anchorNode,
-    (node) => $isLinkNode(node) || $isAutoLinkNode(node)
+    (node) => $isLinkNode(node) || $isAutoLinkNode(node) || node.getType() === "link" || node.getType() === "autolink"
   );
-  const linkSelf = $isLinkNode(anchorNode) || $isAutoLinkNode(anchorNode);
+  const linkSelf = $isLinkNode(anchorNode) || $isAutoLinkNode(anchorNode) || anchorNode.getType() === "link";
 
   return {
     bold: selection.hasFormat("bold"),
@@ -166,8 +172,8 @@ export function $getSelectedLinkHref(): string | null {
   const anchor = selection.anchor.getNode();
   let href: string | null = null;
   $walkAncestors(anchor, (current) => {
-    if ($isLinkNode(current) || $isAutoLinkNode(current)) {
-      href = current.getURL();
+    if (current.getType() === "link" || current.getType() === "autolink") {
+      href = (current as LexicalNode & { getURL?: () => string }).getURL?.() ?? null;
       return true;
     }
     return false;

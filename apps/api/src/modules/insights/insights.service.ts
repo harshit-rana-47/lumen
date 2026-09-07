@@ -1,5 +1,6 @@
 import { WORKER_MODEL, groqClient } from "../../config/groq";
 import { supabaseAdmin } from "../../config/supabase";
+import { daysBeforeDateKey } from "../../lib/dateKey";
 import { decrypt } from "../../lib/encrypt";
 import { getUserDEK } from "../../lib/userDEK";
 import type { InsightsListQuery, MoodTrendQuery, ReportQuery } from "./insights.schema";
@@ -28,10 +29,16 @@ type DailyLogRow = {
 const INSIGHT_SELECT =
   "id,insight_type,summary_encrypted,iv,auth_tag,period_start,period_end,confidence,is_dismissed,seen_at,created_at";
 
-function daysAgo(days: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() - days);
-  return date.toISOString().slice(0, 10);
+function utcDateKey(date = new Date()): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function moodTrendStart(query: MoodTrendQuery): string {
+  const end = query.end ?? utcDateKey();
+  return daysBeforeDateKey(end, query.days);
 }
 
 function decryptInsight(row: InsightRow, dek: string) {
@@ -110,7 +117,7 @@ export class InsightsService {
       .from("daily_logs")
       .select("log_date,mood,energy,anxiety")
       .eq("user_id", userId)
-      .gte("log_date", daysAgo(query.days))
+      .gte("log_date", moodTrendStart(query))
       .order("log_date", { ascending: true })
       .returns<DailyLogRow[]>();
 
@@ -132,29 +139,47 @@ export class InsightsService {
       this.list(userId, { page: 1, limit: 10 })
     ]);
 
-    const completion = await groqClient.chat.completions.create({
-      model: WORKER_MODEL,
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Write a concise reflective wellness report from the provided trend data and insights. Do not diagnose. Be practical, warm, and specific."
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            period: query.period,
-            moodTrend: trend,
-            insights: insights.insights.map((insight) => ({
-              type: insight.type,
-              summary: insight.summary,
-              confidence: insight.confidence
-            }))
-          })
-        }
-      ]
-    });
+    let completion;
+    try {
+      completion = await groqClient.chat.completions.create({
+        model: WORKER_MODEL,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Write a concise reflective wellness report from the provided trend data and insights. Do not diagnose. Be practical, warm, and specific."
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              period: query.period,
+              moodTrend: trend,
+              insights: insights.insights.map((insight) => ({
+                type: insight.type,
+                summary: insight.summary,
+                confidence: insight.confidence
+              }))
+            })
+          }
+        ]
+      });
+    } catch (caught) {
+      const groqStatus =
+        caught && typeof caught === "object" && "status" in caught
+          ? Number((caught as { status?: unknown }).status)
+          : NaN;
+      const wrapped = new Error(
+        caught instanceof Error ? caught.message : "Insight report could not be generated."
+      );
+      (wrapped as Error & { status: number }).status =
+        groqStatus === 404
+          ? 502
+          : groqStatus >= 400 && groqStatus < 600
+            ? groqStatus
+            : 502;
+      throw wrapped;
+    }
 
     const report = completion.choices[0]?.message.content?.trim() ?? "";
 

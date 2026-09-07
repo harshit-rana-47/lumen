@@ -1,12 +1,12 @@
 # CODEBASE_MAP.md
 
-Last updated: 2026-08-30 (Phase 2 Slice 5)
+Last updated: 2026-09-07
 
 ## Monorepo
 
 ```
 Lumen/
-├── DOCS/
+├── DOCS/                 AGENT_CONTEXT.md first; STABILITY_DEBUGGING.md for 2026-09-05 pass
 ├── apps/api/             Express API + pg-boss workers
 ├── apps/web/             Next.js App Router
 ├── packages/shared/
@@ -20,12 +20,15 @@ Lumen/
 |---|---|---|---|---|---|---|
 | Landing | `app/page.tsx` | — | — | — | — | — |
 | App shell / V1 nav | `AppShell`, Sidebar/BottomNav/TopBar | `lib/nav.ts` | — | — | — | typecheck |
-| Auth | `(auth)/*` | `authStore` | `modules/auth` | Auth + `users` | — | scaffold |
-| Today | `(dashboard)/today` | page hooks | journal + daily-log | journals/logs | — | — |
-| Journal | `JournalWorkspace`, `JournalEditor`, Dear Diary | `useJournal` | `modules/journal` | `journal_entries` | embed→memory | journal + encrypt |
+| Auth | `(auth)/*` | `authStore` | `modules/auth` | Auth + `users` | — | auth tests |
+| Today | `(dashboard)/today` | `todayView`, activity, On This Day | journal list + activity + insights | `journal_entries` | — | todayView tests |
+| Insights | `(dashboard)/insights` | `useInsights` | `modules/insights` (+ unused-by-Today `daily-log`) | `insights`, `daily_logs` | nightly insights | — |
+| Memory UI | `(dashboard)/memory` | `useMemory` | `modules/memory` | `memory_items` | memory worker | — |
+| Goals | `(dashboard)/goals` | page | `modules/goals` | `goals` | — | — |
+| Journal | `JournalLibrary`, `JournalReader`, `JournalEditor` | `useJournal`, `journalArchive`, `journalTitle` | `modules/journal` | `journal_entries`, `media_attachments` | embed→memory (`plain`) | archive + document + title tests |
 | Chat | `ChatWindow`, list, empty, input | `useChat` (general only) | `modules/chat` + context | chat tables | Groq SSE | context tests |
 | Reflect | `ReflectProvider`, `ReflectSurface` | `useReflectChat` | `modules/chat` + context | `chat_sessions` | Groq SSE | reflection tests |
-| You | `(dashboard)/you` | — | `modules/user` | profile/purge | — | deletion inventory |
+| You | `(dashboard)/you`, `YouPage` | `youView`, `useProfile`, `useMemorySettings` | `modules/user` | profile/purge | — | deletion inventory + youView |
 
 ## Important paths
 
@@ -34,9 +37,10 @@ Lumen/
 | V1 nav config | `apps/web/lib/nav.ts` |
 | App shell | `apps/web/components/layout/AppShell.tsx` |
 | Journal workspace | `apps/web/components/journal/JournalWorkspace.tsx` |
-| Journal list | `apps/web/components/journal/JournalEntryList.tsx` |
+| Journal library | `apps/web/components/journal/JournalLibrary.tsx` |
+| Journal reader | `apps/web/components/journal/JournalReader.tsx` |
 | Dear Diary chrome | `apps/web/components/journal/DearDiaryHeading.tsx`, `lib/dearDiary.ts` |
-| Reflect entry (stub) | `apps/web/components/journal/ReflectEntryButton.tsx` |
+| Reflect entry action | `apps/web/components/journal/ReflectEntryButton.tsx` |
 | Reflect panel | `ReflectProvider.tsx`, `ReflectSurface.tsx` |
 | Reflect chat hook | `apps/web/hooks/useReflectChat.ts` |
 | Reflect session title | `apps/web/lib/reflectSession.ts` |
@@ -46,6 +50,11 @@ Lumen/
 | Journal editor | `apps/web/components/editor/JournalEditor.tsx` |
 | Editor toolbar | `apps/web/components/editor/EditorToolbar.tsx` |
 | Journal hooks | `apps/web/hooks/useJournal.ts` |
+| In-flight GET share | `apps/web/lib/inflight.ts` |
+| You page | `apps/web/components/you/YouPage.tsx` |
+| Groq models | `apps/api/src/config/groq.ts` |
+| Auth `getUser` cache | `apps/api/src/middleware/auth.ts` |
+| Rate limits | `apps/api/src/middleware/rateLimit.ts` |
 | Journal routes | `apps/web/app/(dashboard)/journal/**` |
 | Page transitions | `apps/web/components/motion/PageTransition.tsx` |
 | Motion tokens | `apps/web/lib/motion/tokens.ts` |

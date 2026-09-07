@@ -9,8 +9,6 @@ export { SpringPress } from "./SpringPress";
 export { HoverLift } from "./HoverLift";
 export { MagneticButton } from "./MagneticButton";
 export { AmbientBackground } from "./AmbientBackground";
-export { ParallaxLayer } from "./ParallaxLayer";
-export { PanelTransition } from "./PanelTransition";
 export { PageTransition } from "./PageTransition";
 export { SectionHeading } from "./SectionHeading";
 export { MotionLink } from "./MotionLink";

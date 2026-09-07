@@ -6,7 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 /**
  * Register GSAP plugins once. Import from client modules that need GSAP.
- * ScrollTrigger is ready for Slice B landing; do not attach heavy triggers in the editor.
+ * ScrollTrigger is used by Slice B landing choreography; do not attach heavy triggers in the editor.
  */
 let registered = false;
 

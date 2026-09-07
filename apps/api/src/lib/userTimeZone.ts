@@ -27,9 +27,18 @@ export function persistUserTimeZone(userId: string, timeZone: string): void {
     .eq("id", userId)
     .is("deleted_at", null)
     .then(({ error }) => {
-      if (error) {
-        lastPersisted.delete(userId);
-        logger.warn({ err: error, userId }, "failed to persist user timezone");
+      if (!error) {
+        return;
       }
+
+      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+      // Missing column / schema cache: do not retry on every authenticated request.
+      if (code === "PGRST204" || code === "42703") {
+        logger.warn({ userId }, "users.timezone is not available; skipping persist");
+        return;
+      }
+
+      lastPersisted.delete(userId);
+      logger.warn({ err: error, userId }, "failed to persist user timezone");
     });
 }

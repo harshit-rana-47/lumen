@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import axios from "axios";
+import { API_BASE_URL, api } from "@/lib/api";
+import { forgetRemembered, shareInflight } from "@/lib/inflight";
+import { pickReflectSession, reflectSessionTitle } from "@/lib/reflectSession";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
-import { entryIdFromReflectTitle, reflectSessionTitle } from "@/lib/reflectSession";
+import { useHasApiSession } from "@/stores/authStore";
 import type { ChatMessage, ChatSession } from "@/hooks/useChat";
 
 type ApiEnvelope<T> = {
@@ -20,13 +23,33 @@ type StreamEvent = {
   done?: boolean;
 };
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const apiBaseUrl = API_BASE_URL;
+
+function describeError(caught: unknown, fallback: string): string {
+  if (axios.isAxiosError(caught)) {
+    const payload = caught.response?.data as { error?: unknown } | undefined;
+    if (typeof payload?.error === "string" && payload.error.trim()) {
+      return payload.error;
+    }
+    if (caught.response?.status === 401) {
+      return "You are not signed in.";
+    }
+  }
+  if (caught instanceof Error && caught.message.trim()) {
+    return caught.message;
+  }
+  return fallback;
+}
 
 async function accessToken(): Promise<string | null> {
   const {
     data: { session }
   } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  const token = session?.access_token ?? null;
+  if (!token) {
+    return null;
+  }
+  return token;
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -55,6 +78,7 @@ type UseReflectChatArgs = {
  * Always sends `pinnedEntryId` so context cannot silently drift.
  */
 export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
+  const canFetch = useHasApiSession();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -62,20 +86,49 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pinnedRef = useRef(pinnedEntryId);
+  const sessionIdRef = useRef<string | null>(null);
+  const streamingRef = useRef(false);
   pinnedRef.current = pinnedEntryId;
+  sessionIdRef.current = sessionId;
+  streamingRef.current = streaming;
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
 
   const reset = useCallback(() => {
     setSessionId(null);
+    sessionIdRef.current = null;
     setMessages([]);
     setStreaming(false);
+    streamingRef.current = false;
     setWaitingForFirstToken(false);
     setError(null);
     setLoading(false);
   }, []);
 
+  const loadMessages = useCallback(async (activeSessionId: string, entryId: string) => {
+    const messagesResponse = await api.get<ApiEnvelope<MessagesResponse>>(
+      `/chat/sessions/${activeSessionId}/messages`,
+      { params: { limit: 100 } }
+    );
+    if (pinnedRef.current !== entryId) {
+      return;
+    }
+    setMessages(messagesResponse.data.data.messages);
+  }, []);
+
   useEffect(() => {
     if (!enabled || !pinnedEntryId) {
       reset();
+      return;
+    }
+
+    if (!canFetch) {
+      setSessionId(null);
+      setMessages([]);
+      setLoading(false);
+      setError("Sign in to reflect on this entry.");
       return;
     }
 
@@ -89,44 +142,31 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
       setSessionId(null);
 
       try {
-        const sessionsResponse = await api.get<ApiEnvelope<ChatSession[]>>("/chat/sessions");
-        if (cancelled || pinnedRef.current !== entryId) {
-          return;
-        }
+        const session = await shareInflight(`reflect-session:${entryId}`, async () => {
+          const sessionsResponse = await api.get<ApiEnvelope<ChatSession[]>>("/chat/sessions");
+          const existing = pickReflectSession(sessionsResponse.data.data, entryId);
+          if (existing) {
+            return existing;
+          }
 
-        const existing = sessionsResponse.data.data.find(
-          (session) =>
-            session.mode === "reflection" && entryIdFromReflectTitle(session.title) === entryId
-        );
-
-        let session = existing ?? null;
-
-        if (!session) {
           const created = await api.post<ApiEnvelope<ChatSession>>("/chat/sessions", {
             mode: "reflection",
             title: reflectSessionTitle(entryId)
           });
-          if (cancelled || pinnedRef.current !== entryId) {
-            return;
-          }
-          session = created.data.data;
-        }
-
-        setSessionId(session.id);
-
-        const messagesResponse = await api.get<ApiEnvelope<MessagesResponse>>(
-          `/chat/sessions/${session.id}/messages`,
-          { params: { limit: 100 } }
-        );
+          forgetRemembered("chat-sessions");
+          return created.data.data;
+        });
 
         if (cancelled || pinnedRef.current !== entryId) {
           return;
         }
 
-        setMessages(messagesResponse.data.data.messages);
+        setSessionId(session.id);
+        sessionIdRef.current = session.id;
+        await loadMessages(session.id, entryId);
       } catch (caught) {
         if (!cancelled) {
-          setError(caught instanceof Error ? caught.message : "Unable to open reflection.");
+          setError(describeError(caught, "Unable to open reflection."));
         }
       } finally {
         if (!cancelled) {
@@ -140,7 +180,7 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, pinnedEntryId, reset]);
+  }, [canFetch, enabled, loadMessages, pinnedEntryId, reset]);
 
   const appendDelta = useCallback((delta: string, forSessionId: string) => {
     setMessages((current) => {
@@ -171,111 +211,131 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
 
   const streamWithToken = useCallback(
     async (activeSessionId: string, content: string, entryId: string, token: string) => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      };
+      if (typeof Intl !== "undefined") {
+        headers["x-lumen-timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+
       return fetch(`${apiBaseUrl}/chat/sessions/${activeSessionId}/message`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ content, pinnedEntryId: entryId })
       });
     },
     []
   );
 
-  const sendMessage = useCallback(
-    async (content: string) => {
-      const trimmed = content.trim();
-      const entryId = pinnedRef.current;
-      const activeSessionId = sessionId;
+  const sendMessage = useCallback(async (content: string) => {
+    const trimmed = content.trim();
+    const entryId = pinnedRef.current;
+    const activeSessionId = sessionIdRef.current;
 
-      if (!trimmed || !entryId || !activeSessionId || streaming) {
-        return;
+    if (!trimmed || streamingRef.current) {
+      return;
+    }
+
+    if (!entryId || !activeSessionId) {
+      setError("Reflection is still opening. Try again in a moment.");
+      return;
+    }
+
+    setError(null);
+    setStreaming(true);
+    streamingRef.current = true;
+    setWaitingForFirstToken(true);
+    setMessages((current) => [
+      ...current,
+      {
+        id: `user-live-${Date.now()}`,
+        sessionId: activeSessionId,
+        role: "user",
+        content: trimmed,
+        createdAt: new Date().toISOString()
+      }
+    ]);
+
+    try {
+      let token = await accessToken();
+      if (!token) {
+        throw new Error("You are not signed in.");
       }
 
-      setError(null);
-      setStreaming(true);
-      setWaitingForFirstToken(true);
-      setMessages((current) => [
-        ...current,
-        {
-          id: `user-live-${Date.now()}`,
-          sessionId: activeSessionId,
-          role: "user",
-          content: trimmed,
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      let response = await streamWithToken(activeSessionId, trimmed, entryId, token);
 
-      try {
-        let token = await accessToken();
+      if (response.status === 401) {
+        token = await refreshAccessToken();
         if (!token) {
-          throw new Error("You are not signed in.");
+          throw new Error("Your session expired.");
         }
-
-        let response = await streamWithToken(activeSessionId, trimmed, entryId, token);
-
-        if (response.status === 401) {
-          token = await refreshAccessToken();
-          if (!token) {
-            throw new Error("Your session expired.");
-          }
-          response = await streamWithToken(activeSessionId, trimmed, entryId, token);
-        }
-
-        if (!response.ok || !response.body) {
-          throw new Error(`Reflection request failed with status ${response.status}.`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            break;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-          const frames = buffer.split("\n\n");
-          buffer = frames.pop() ?? "";
-
-          for (const frame of frames) {
-            const line = frame.split("\n").find((candidate) => candidate.startsWith("data: "));
-            if (!line) {
-              continue;
-            }
-
-            const event = JSON.parse(line.slice(6)) as StreamEvent;
-            if (event.delta) {
-              setWaitingForFirstToken(false);
-              appendDelta(event.delta, activeSessionId);
-            }
-            if (event.done) {
-              setWaitingForFirstToken(false);
-            }
-          }
-        }
-
-        if (pinnedRef.current === entryId) {
-          const messagesResponse = await api.get<ApiEnvelope<MessagesResponse>>(
-            `/chat/sessions/${activeSessionId}/messages`,
-            { params: { limit: 100 } }
-          );
-          if (pinnedRef.current === entryId) {
-            setMessages(messagesResponse.data.data.messages);
-          }
-        }
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Unable to send reflection message.");
-      } finally {
-        setWaitingForFirstToken(false);
-        setStreaming(false);
+        response = await streamWithToken(activeSessionId, trimmed, entryId, token);
       }
-    },
-    [appendDelta, sessionId, streamWithToken, streaming]
-  );
+
+      if (!response.ok || !response.body) {
+        throw new Error(
+          response.status === 0
+            ? "Network interrupted while talking to Lumen."
+            : `Reflection request failed (${response.status}).`
+        );
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let sawDelta = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+
+        for (const frame of frames) {
+          const line = frame.split("\n").find((candidate) => candidate.startsWith("data: "));
+          if (!line) {
+            continue;
+          }
+
+          let event: StreamEvent;
+          try {
+            event = JSON.parse(line.slice(6)) as StreamEvent;
+          } catch {
+            throw new Error("Received a malformed response from Lumen.");
+          }
+
+          if (event.delta) {
+            sawDelta = true;
+            setWaitingForFirstToken(false);
+            appendDelta(event.delta, activeSessionId);
+          }
+          if (event.done) {
+            setWaitingForFirstToken(false);
+          }
+        }
+      }
+
+      if (!sawDelta) {
+        setError("Lumen returned an empty response. Try again.");
+      }
+
+      if (pinnedRef.current === entryId) {
+        forgetRemembered(`chat-messages:${activeSessionId}`);
+        await loadMessages(activeSessionId, entryId);
+      }
+    } catch (caught) {
+      setError(describeError(caught, "Unable to send reflection message."));
+    } finally {
+      setWaitingForFirstToken(false);
+      setStreaming(false);
+      streamingRef.current = false;
+    }
+  }, [appendDelta, loadMessages, streamWithToken]);
 
   return {
     sessionId,
@@ -285,7 +345,7 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
     loading,
     error,
     sendMessage,
-    clearError: () => setError(null),
+    clearError,
     reset
   };
 }
@@ -293,13 +353,13 @@ export function useReflectChat({ pinnedEntryId, enabled }: UseReflectChatArgs) {
 /** Soft-archive reflection session tied to a journal entry (best-effort). */
 export async function archiveReflectSessionForEntry(entryId: string): Promise<void> {
   const response = await api.get<ApiEnvelope<ChatSession[]>>("/chat/sessions");
-  const match = response.data.data.find(
-    (session) => session.mode === "reflection" && entryIdFromReflectTitle(session.title) === entryId
-  );
+  const match = pickReflectSession(response.data.data, entryId);
 
   if (!match) {
     return;
   }
 
   await api.delete(`/chat/sessions/${match.id}`);
+  forgetRemembered("chat-sessions");
+  forgetRemembered(`chat-messages:${match.id}`);
 }

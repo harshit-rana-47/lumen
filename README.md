@@ -2,8 +2,7 @@
 
 Lumen is a private AI journaling companion.
 
-This repository is mid-rebuild toward the approved architecture (Next.js App Router,
-Supabase Auth/RLS/pgvector, pg-boss, Groq, local MiniLM embeddings).
+**Stack:** Next.js 16 (`apps/web`) · Express `/api/v1` (`apps/api`) · Supabase Auth/Postgres/Storage · pgvector · pg-boss · Groq · local MiniLM embeddings · envelope-encrypted journals.
 
 ## Local development
 
@@ -44,5 +43,6 @@ Versioned SQL: `supabase/migrations/`.
 
 ```bash
 npm -w @lumen/api run start:workers   # pg-boss worker
-# alias: npm -w @lumen/api run start:pgboss
 ```
+
+Root `npm run dev` starts the API, web app, and workers together via Turbo.

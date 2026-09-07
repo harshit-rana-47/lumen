@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 import { api } from "@/lib/api";
+import { waitForApiReady } from "@/lib/apiReadiness";
 import { APP_HOME } from "@/lib/nav";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
+import { useApiReady } from "@/hooks/useApiReady";
 import { useAuthStore } from "@/stores/authStore";
 
 type LoginResponse = {
@@ -29,6 +31,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const restoreSession = useAuthStore((state) => state.restoreSession);
+  const apiReady = useApiReady();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +49,7 @@ function LoginForm() {
     setSubmitting(true);
 
     try {
+      await waitForApiReady();
       const response = await api.post<LoginResponse>("/auth/login", {
         email,
         password
@@ -73,52 +77,74 @@ function LoginForm() {
       await restoreSession();
       router.replace(safeRedirectPath(searchParams.get("redirectTo")));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to log in.");
+      const apiMessage =
+        caught &&
+        typeof caught === "object" &&
+        "response" in caught &&
+        (caught as { response?: { data?: { error?: unknown } } }).response?.data?.error;
+
+      setError(
+        typeof apiMessage === "string" && apiMessage.trim()
+          ? apiMessage
+          : caught instanceof Error
+            ? caught.message
+            : "Unable to log in."
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
       <Link href="/" className="font-display text-2xl tracking-tight text-foreground">
         Lumen
       </Link>
-      <h1 className="mt-8 text-3xl font-semibold tracking-tight">Log in</h1>
+      <p className="mt-8 lumen-overline text-primary/90">Welcome back</p>
+      <h1 className="mt-3 font-display text-3xl tracking-tight">Log in</h1>
+      <p className="mt-2 text-sm text-ink-muted">Sign in to continue writing in your journal.</p>
+      {apiReady === "starting" ? (
+        <p className="mt-6 text-sm text-ink-muted">Starting Lumen…</p>
+      ) : null}
+      {apiReady === "unreachable" ? (
+        <p className="mt-6 text-sm text-danger">
+          Can&apos;t reach the Lumen API. Make sure it is running, then try again.
+        </p>
+      ) : null}
       <form className="mt-8 space-y-4" onSubmit={onSubmit}>
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-ink-muted">
           Email
           <input
-            className="mt-2 w-full rounded-lg border border-border bg-[hsl(var(--surface))] px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="mt-2 w-full rounded-lumen border border-border bg-surface px-3 py-2.5 text-foreground outline-none transition-shadow focus-visible:shadow-focus"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
           />
         </label>
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-ink-muted">
           Password
           <input
-            className="mt-2 w-full rounded-lg border border-border bg-[hsl(var(--surface))] px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="mt-2 w-full rounded-lumen border border-border bg-surface px-3 py-2.5 text-foreground outline-none transition-shadow focus-visible:shadow-focus"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
           />
         </label>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         <button
-          className="w-full rounded-lg bg-primary px-4 py-2.5 font-medium text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+          className="w-full rounded-full bg-primary px-4 py-2.5 font-semibold text-primary-foreground outline-none transition-transform duration-micro active:scale-[0.99] focus-visible:shadow-focus disabled:opacity-60"
           type="submit"
-          disabled={submitting}
+          disabled={submitting || apiReady !== "ready"}
         >
-          {submitting ? "Logging in…" : "Log in"}
+          {submitting ? "Logging in…" : apiReady === "starting" ? "Waiting for Lumen…" : "Log in"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-foreground/70">
+      <p className="mt-6 text-sm text-ink-muted">
         No account yet?{" "}
-        <Link className="font-medium text-primary" href="/register">
-          Register
+        <Link className="font-medium text-primary outline-none hover:underline focus-visible:shadow-focus" href="/register">
+          Create one
         </Link>
       </p>
     </main>

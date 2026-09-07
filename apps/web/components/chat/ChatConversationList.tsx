@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, Plus, X } from "lucide-react";
+import { MessageSquare, Plus, Trash2, X } from "lucide-react";
 import type { ChatSession } from "@/hooks/useChat";
 import { cn } from "@/lib/cn";
 
@@ -31,6 +31,7 @@ type ChatConversationListProps = {
   loading: boolean;
   onSelect: (sessionId: string) => void;
   onNewChat: () => void;
+  onDelete?: (sessionId: string) => void;
   onClose?: () => void;
   className?: string;
 };
@@ -41,6 +42,7 @@ export function ChatConversationList({
   loading,
   onSelect,
   onNewChat,
+  onDelete,
   onClose,
   className
 }: ChatConversationListProps) {
@@ -55,7 +57,7 @@ export function ChatConversationList({
             className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Plus className="h-4 w-4" aria-hidden />
-            New
+            New chat
           </button>
           {onClose ? (
             <button
@@ -76,7 +78,9 @@ export function ChatConversationList({
         {!loading && sessions.length === 0 ? (
           <div className="px-3 py-8 text-center">
             <MessageSquare className="mx-auto h-5 w-5 text-primary/70" aria-hidden />
-            <p className="mt-3 text-sm text-foreground/55">No conversations yet. Start one when you are ready.</p>
+            <p className="mt-3 text-sm text-foreground/55">
+              No conversations yet. Start one to talk with Lumen about your writing.
+            </p>
           </div>
         ) : null}
 
@@ -85,27 +89,40 @@ export function ChatConversationList({
             const active = session.id === activeSessionId;
             return (
               <li key={session.id}>
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => onSelect(session.id)}
+                <div
                   className={cn(
-                    "group relative w-full rounded-xl px-3 py-3 text-left outline-none",
+                    "group relative flex items-stretch rounded-xl outline-none",
                     "transition-[background-color,transform] duration-[var(--motion-interaction)] ease-[var(--ease-standard)]",
                     "hover:-translate-y-px hover:bg-muted/80",
-                    "focus-visible:ring-2 focus-visible:ring-primary/35",
                     active && "bg-primary/[0.08] ring-1 ring-primary/15"
                   )}
                 >
                   {active ? (
                     <span aria-hidden className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary" />
                   ) : null}
-                  <span className={cn("block truncate text-sm font-medium", active && "text-primary")}>
-                    {sessionLabel(session)}
-                  </span>
-                  <span className="mt-1 block text-xs text-foreground/45">{formatWhen(session.updated_at)}</span>
-                </button>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    onClick={() => onSelect(session.id)}
+                    className="min-w-0 flex-1 rounded-xl px-3 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+                  >
+                    <span className={cn("block truncate text-sm font-medium", active && "text-primary")}>
+                      {sessionLabel(session)}
+                    </span>
+                    <span className="mt-1 block text-xs text-foreground/45">{formatWhen(session.updated_at)}</span>
+                  </button>
+                  {onDelete ? (
+                    <button
+                      type="button"
+                      className="m-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-foreground/40 outline-none hover:bg-muted hover:text-danger focus-visible:ring-2 focus-visible:ring-primary/35"
+                      aria-label={`Delete ${sessionLabel(session)}`}
+                      onClick={() => onDelete(session.id)}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </button>
+                  ) : null}
+                </div>
               </li>
             );
           })}

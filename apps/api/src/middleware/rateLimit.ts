@@ -1,8 +1,8 @@
 import rateLimit from "express-rate-limit";
 
 /**
- * In-process rate limiting (Redis removed with BullMQ in Phase 1.5).
- * Sufficient for a single API instance; revisit if horizontally scaled.
+ * In-process rate limiting. Sufficient for a single API instance;
+ * revisit if the API is horizontally scaled.
  */
 function createLimiter(prefix: string, limit: number, windowMs: number) {
   return rateLimit({

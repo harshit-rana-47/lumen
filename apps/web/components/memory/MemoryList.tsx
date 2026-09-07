@@ -17,7 +17,7 @@ export function MemoryList({ memories, categoryFilter, onSelect }: MemoryListPro
   if (visibleMemories.length === 0) {
     return (
       <div className="rounded border border-dashed border-[hsl(var(--border))] bg-white p-8 text-center text-sm text-slate-500">
-        No memories in this view.
+        No memories in this view. Write journal entries and they will appear here after Lumen extracts lasting facts.
       </div>
     );
   }

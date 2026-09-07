@@ -14,7 +14,7 @@ Journal save (encrypted)
        → confidence gate (< 0.55 dropped)
        → never overwrite user_edited active rows
        → supersede prior AI active row + insert new version
-  → Postgres memory_items only (Neo4j removed)
+  → Postgres `memory_items`
 ```
 
 Insights: `insights.nightly` scheduled via pg-boss (`0 2 * * *`).

@@ -1,6 +1,6 @@
 # DATABASE.md
 
-Last updated: 2026-08-30 (Phase 1.5)
+Last updated: 2026-09-06 (memory versioning applied; applicator uses `version`)
 
 ## Source of truth
 
@@ -9,6 +9,7 @@ Last updated: 2026-08-30 (Phase 1.5)
 | `20260830120000_baseline_schema.sql` | Tables, indexes, vector RPCs |
 | `20260830121000_rls_policies.sql` | RLS + match_* SECURITY DEFINER tenancy |
 | `20260830153000_memory_versioning_and_match_rpc_fix.sql` | Memory status/version/supersede + match active-only |
+| `20260905013000_chat_sessions_mode_check.sql` | Align `chat_sessions.mode` with product + legacy values |
 
 Apply / verify:
 
@@ -18,7 +19,7 @@ npm -w @lumen/api run db:migrate
 npm -w @lumen/api run db:verify
 ```
 
-**Live apply status:** **NOT VERIFIED** in this environment (Supabase host DNS ENOTFOUND; `DATABASE_URL` empty). Do not claim production RLS until verify succeeds.
+**Live apply status (2026-09-06):** `db:migrate` records `public.schema_migrations.version` (text filename). Live ledger now includes repo files. `20260830153000` applied (`memory_items.status` / `version` / `superseded_by`; `match_*` SECURITY DEFINER + active-only). Baseline + RLS SQL were **recorded without re-running** because tables/policies already existed from `0001_initial_schema.sql`. `20260905013000` re-applied (idempotent). RLS still not claimed fully verified. Evidence: `STABILITY_DEBUGGING.md` §6.
 
 ## Core entities
 
@@ -28,10 +29,10 @@ npm -w @lumen/api run db:verify
 | `journal_entries` | Encrypted body + embedding + pipeline statuses |
 | `memory_items` | Encrypted facts + embedding; **active** unique `(user_id,category,key)`; `status`, `version`, `superseded_by` |
 | `chat_sessions` / `chat_messages` | Encrypted chat |
-| `daily_logs` | Check-ins |
+| `daily_logs` | Optional check-ins; Insights mood trend still reads this table. Today no longer writes it. Do not drop. |
 | `audit_logs` | Audit (retained on account delete) |
 | `goals` / `insights` | Secondary |
-| `schema_migrations` | Created by apply script |
+| `schema_migrations` | Live: `version` text + `applied_at`. Applicator supports `version` and/or `id`. |
 
 ## Vector search
 

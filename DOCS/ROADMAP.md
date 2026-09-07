@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Last updated: 2026-08-31 (Visual Rebuild)
+Last updated: 2026-09-07
 
 Do not mark future work as completed.
 
@@ -23,27 +23,27 @@ Baseline, cutover, verification.
 
 ### Phase 2 — Visual Rebuild (portfolio-grade)
 
-**Plan documented; awaiting approval before mass implementation.**
+**Slices A–C shipped. Copy clarity pass done. Stability + Performance Pass done (2026-09-05) — `STABILITY_DEBUGGING.md`. Await approval before next slice.**
 
 | Slice | Scope | Status |
 |---|---|---|
 | Plan | Research, art direction, design system, motion, landing storyboard, Continuum recommendation | **Approved** |
 | **A** | Art direction + design system + motion primitives | **Done** — `/design-system` |
-| **B** | Landing cinematic | **Next** (await approval) |
-| **C** | Auth experience | Pending |
-| **D** | App shell + navigation visual | Pending |
-| **E** | Today Continuum (replace Daily Check-In) | Pending |
-| **F** | Journal visual elevation | Pending |
+| **B** | Landing cinematic | **Done** — Lamp Circle redesign on `/` |
+| **C** | Auth + app visual identity | **Done** — room tokens, shell, auth doorway, Continuum Today, journal page plane |
+| **D** | App shell + navigation visual | Mostly absorbed by C; further polish pending |
+| **E** | Today Continuum (replace Daily Check-In) | **Done** (shipped in C) |
+| **F** | Journal visual elevation | **Done enough for V1** — library, reader, rich editor (further polish pending) |
 | **G** | Reflect choreography polish | Pending |
 | **H** | Chat visual elevation | Pending |
-| **I** | You / account | Pending |
+| **I** | You / account | **Done** — `YouPage` (2026-09-06) |
 | **J** | Global polish + responsive + performance | Pending |
 
 ## BLOCKED
 
 | Item | Blocked by |
 |---|---|
-| Starting Slice A+ implementation | Explicit approval of Visual Rebuild plan |
+| Starting Slice C+ implementation | Explicit approval after Slice B review |
 | Live RLS / production E2E claims | Env/project as documented historically |
 
 ## DEFERRED

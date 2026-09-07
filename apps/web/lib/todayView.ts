@@ -64,6 +64,7 @@ export type TodayView = {
   wordsToday: number;
   threadHref: string;
   threadLabel: string;
+  talkHref: string | null;
   showNewEntry: boolean;
   showTalk: boolean;
   showStarters: boolean;
@@ -107,6 +108,7 @@ export function buildTodayView(input: TodayViewInput): TodayView {
     wordsToday,
     threadHref: latest ? `/journal/${latest.id}?edit=1` : "/journal/new",
     threadLabel: latest ? "Continue writing" : "Start writing",
+    talkHref: latest ? `/journal/${latest.id}?reflect=1` : null,
     showNewEntry: hasHistory,
     showTalk: !input.entriesLoading && hasHistory,
     showStarters: !input.entriesLoading && !hasHistory,

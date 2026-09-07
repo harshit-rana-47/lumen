@@ -3,40 +3,50 @@
 @tailwind utilities;
 
 /*
-  Lumen Visual Rebuild — Slice A
-  Art direction: “Private lamp / living notebook”
-  Warm paper · deep ink · muted sage-teal · sparse amber
+  Lumen Visual Rebuild — Slice C
+  App identity: Lamp Circle room (calmer than landing)
+  Near-black chrome · amber light accent · parchment writing plane · ivory type
 */
 
 :root {
-  /* ——— Color (HSL channels) ——— */
-  --paper: 38 32% 95%;
-  --paper-elevated: 40 40% 98%;
+  /* ——— Semantic color (HSL channels) ——— */
+  /* Room chrome */
+  --background: 24 18% 7%;
+  --surface: 26 14% 11%;
+  --surface-elevated: 28 12% 14%;
+  --border: 30 12% 20%;
+  --muted: 28 10% 15%;
+  --line: var(--border);
+  --mist: var(--muted);
+
+  /* Text on chrome */
+  --foreground: 40 28% 92%;
+  --ink: var(--foreground);
+  --ink-muted: 36 12% 62%;
+  --ink-faint: 34 10% 46%;
+
+  /* Writing page (parchment) — only on journal surfaces */
   --page: 38 34% 90%;
   --page-elevated: 40 38% 94%;
   --page-ink: 28 20% 14%;
   --page-ink-muted: 28 12% 36%;
-  --ink: 30 12% 12%;
-  --ink-muted: 30 8% 38%;
-  --ink-faint: 30 6% 55%;
-  --lamp: 168 28% 32%;
-  --lamp-soft: 168 22% 42%;
-  --lamp-mist: 168 24% 88%;
-  --ember: 32 48% 48%;
-  --ember-soft: 32 40% 92%;
-  --mist: 42 28% 90%;
-  --line: 32 10% 82%;
-  --danger: 6 62% 42%;
-  --danger-soft: 6 45% 94%;
+  --paper: var(--page);
+  --paper-elevated: var(--page-elevated);
 
-  /* Aliases used across existing components */
-  --background: var(--paper);
-  --foreground: var(--ink);
-  --border: var(--line);
-  --muted: var(--mist);
-  --primary: var(--lamp);
-  --accent: var(--ember);
-  --surface: var(--paper-elevated);
+  /* Accent = amber light (use sparingly) */
+  --primary: 28 72% 48%;
+  --primary-foreground: 24 30% 8%;
+  --accent: 28 78% 52%;
+  --accent-muted: 28 40% 28%;
+  --lamp: var(--primary);
+  --lamp-soft: 28 55% 58%;
+  --lamp-mist: 28 35% 18%;
+  --ember: 28 82% 50%;
+  --ember-soft: 28 42% 24%;
+  --ember-core: 38 92% 68%;
+
+  --danger: 6 58% 52%;
+  --danger-soft: 6 35% 18%;
 
   /* ——— Typography ——— */
   --text-display-xl: clamp(2.75rem, 5vw + 1rem, 4.25rem);
@@ -68,10 +78,10 @@
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
 
-  /* ——— Depth (lamp falloff) ——— */
-  --shadow-soft: 0 1px 2px hsla(30, 20%, 10%, 0.04), 0 8px 24px hsla(30, 18%, 12%, 0.06);
-  --shadow-lift: 0 2px 4px hsla(30, 20%, 10%, 0.05), 0 16px 40px hsla(30, 18%, 12%, 0.08);
-  --shadow-focus: 0 0 0 3px hsla(168, 28%, 32%, 0.28);
+  /* ——— Depth ——— */
+  --shadow-soft: 0 1px 2px hsla(20, 40%, 2%, 0.35), 0 10px 28px hsla(20, 40%, 2%, 0.28);
+  --shadow-lift: 0 2px 6px hsla(20, 40%, 2%, 0.4), 0 18px 48px hsla(20, 50%, 2%, 0.38);
+  --shadow-focus: 0 0 0 3px hsla(28, 72%, 48%, 0.35);
 
   /* ——— Motion ——— */
   --motion-micro: 140ms;
@@ -95,9 +105,9 @@
   --z-modal: 50;
   --z-toast: 60;
 
-  /* Ambient intensity (0–1 perceived) */
-  --ambient-opacity: 0.55;
-  --grain-opacity: 0.035;
+  /* Ambient — quieter than landing */
+  --ambient-opacity: 0.4;
+  --grain-opacity: 0.028;
 }
 
 @layer base {
@@ -112,14 +122,14 @@
   }
 
   body {
-    background: hsl(var(--paper));
-    color: hsl(var(--ink));
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-size: var(--text-body);
     line-height: var(--leading-body);
     text-rendering: optimizeLegibility;
   }
 
-  /* Global quiet atmosphere — vocabulary presence without per-route setup */
+  /* Quiet room atmosphere — restrained amber light */
   body::before {
     content: "";
     pointer-events: none;
@@ -128,14 +138,14 @@
     z-index: -1;
     opacity: var(--ambient-opacity);
     background:
-      radial-gradient(ellipse 90% 70% at 8% -8%, hsl(var(--lamp-mist) / 0.75), transparent 52%),
-      radial-gradient(ellipse 65% 50% at 100% 0%, hsl(var(--ember-soft) / 0.55), transparent 48%),
-      radial-gradient(ellipse 55% 45% at 70% 100%, hsl(var(--mist) / 0.65), transparent 50%);
+      radial-gradient(ellipse 80% 55% at 12% -5%, hsl(var(--ember) / 0.14), transparent 55%),
+      radial-gradient(ellipse 55% 45% at 100% 0%, hsl(var(--ember-core) / 0.08), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 50% 110%, hsl(28 30% 12% / 0.55), transparent 55%);
   }
 
   ::selection {
-    background: hsl(var(--lamp-mist));
-    color: hsl(var(--ink));
+    background: hsl(var(--primary) / 0.35);
+    color: hsl(var(--foreground));
   }
 
   :focus-visible {
@@ -208,8 +218,21 @@
 
   /* Surfaces */
   .lumen-paper {
-    background: hsl(var(--paper-elevated));
-    color: hsl(var(--ink));
+    background: hsl(var(--page));
+    color: hsl(var(--page-ink));
+  }
+
+  .lumen-surface {
+    background: hsl(var(--surface-elevated));
+    border: 1px solid hsl(var(--border) / 0.9);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .lumen-surface-quiet {
+    background: hsl(var(--surface) / 0.85);
+    border: 1px solid hsl(var(--border) / 0.65);
+    border-radius: var(--radius-md);
   }
 
   .lumen-page {
@@ -228,7 +251,6 @@
     --page-ink: 28 20% 14%;
     --page-ink-muted: 28 12% 36%;
     position: relative;
-    isolation: isolate;
     background-color: hsl(var(--page));
     background-size: cover;
     background-position: center;
@@ -254,57 +276,61 @@
   }
 
   .journal-leaf--parchment {
-    --page: 38 42% 88%;
-    --page-elevated: 40 38% 93%;
-    --page-ink: 28 22% 16%;
+    --page: 38 34% 90%;
+    --page-elevated: 40 38% 94%;
+    --page-ink: 28 20% 14%;
     --page-ink-muted: 28 12% 36%;
     box-shadow:
-      0 0 0 1px hsl(28 40% 42% / 0.12),
+      0 0 0 1px hsl(28 40% 42% / 0.1),
       var(--shadow-lift),
-      0 0 48px hsl(var(--ember) / 0.1);
+      0 0 48px hsl(var(--ember) / 0.08);
   }
 
   .journal-leaf--parchment::after {
-    opacity: 0.58;
+    opacity: 0.55;
     background:
-      repeating-linear-gradient(-18deg, transparent 0 11px, hsl(28 32% 42% / 0.05) 11px 12px),
-      radial-gradient(ellipse 90% 55% at 50% -10%, hsl(38 55% 97% / 0.72), transparent 62%);
+      repeating-linear-gradient(
+        -18deg,
+        transparent 0 10px,
+        hsl(28 32% 42% / 0.045) 10px 11px
+      ),
+      radial-gradient(ellipse 90% 55% at 50% -10%, hsl(38 50% 97% / 0.7), transparent 62%);
   }
 
   .journal-leaf--linen {
-    --page: 42 12% 94%;
-    --page-elevated: 40 10% 97%;
+    --page: 40 14% 95%;
+    --page-elevated: 40 10% 98%;
     --page-ink: 32 10% 18%;
     --page-ink-muted: 28 8% 40%;
     box-shadow:
-      0 0 0 1px hsl(30 8% 50% / 0.14),
+      0 0 0 1px hsl(30 8% 50% / 0.12),
       var(--shadow-lift),
       0 0 36px hsl(30 10% 20% / 0.08);
   }
 
   .journal-leaf--linen::after {
-    opacity: 0.4;
+    opacity: 0.42;
     background:
-      repeating-linear-gradient(0deg, hsl(30 8% 38% / 0.06) 0 1px, transparent 1px 6px),
-      repeating-linear-gradient(90deg, hsl(30 8% 38% / 0.045) 0 1px, transparent 1px 6px);
+      repeating-linear-gradient(0deg, hsl(30 8% 38% / 0.055) 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(90deg, hsl(30 8% 38% / 0.045) 0 1px, transparent 1px 5px);
   }
 
   .journal-leaf--dusk {
-    --page: 26 18% 72%;
-    --page-elevated: 28 16% 78%;
-    --page-ink: 24 20% 14%;
-    --page-ink-muted: 24 12% 28%;
+    --page: 26 16% 74%;
+    --page-elevated: 28 14% 80%;
+    --page-ink: 24 18% 16%;
+    --page-ink-muted: 24 10% 30%;
     box-shadow:
-      0 0 0 1px hsl(24 20% 28% / 0.18),
+      0 0 0 1px hsl(24 20% 28% / 0.16),
       var(--shadow-lift),
-      0 0 40px hsl(24 20% 10% / 0.2);
+      0 0 40px hsl(24 20% 10% / 0.18);
   }
 
   .journal-leaf--dusk::after {
-    opacity: 0.72;
+    opacity: 0.7;
     background:
-      radial-gradient(ellipse 100% 80% at 50% 18%, hsl(32 22% 82% / 0.3), transparent 58%),
-      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(22 24% 18% / 0.28), transparent 55%);
+      radial-gradient(ellipse 100% 80% at 50% 20%, hsl(32 20% 82% / 0.28), transparent 58%),
+      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(22 22% 22% / 0.22), transparent 55%);
   }
 
   .journal-leaf--night {
@@ -314,20 +340,16 @@
     --page-ink-muted: 36 12% 62%;
     color-scheme: dark;
     box-shadow:
-      0 0 0 1px hsl(var(--ember) / 0.2),
+      0 0 0 1px hsl(var(--ember) / 0.18),
       var(--shadow-lift),
-      0 0 56px hsl(var(--ember) / 0.16);
+      0 0 56px hsl(var(--ember) / 0.14);
   }
 
   .journal-leaf--night::after {
-    opacity: 0.88;
+    opacity: 0.85;
     background:
-      radial-gradient(ellipse 70% 45% at 18% 0%, hsl(var(--ember) / 0.18), transparent 58%),
-      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(20 30% 4% / 0.58), transparent 62%);
-  }
-
-  .journal-leaf--photo {
-    background-repeat: no-repeat;
+      radial-gradient(ellipse 70% 45% at 18% 0%, hsl(var(--ember) / 0.16), transparent 58%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(20 30% 4% / 0.55), transparent 62%);
   }
 
   .journal-leaf--photo::before {
@@ -335,13 +357,13 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(180deg, hsl(var(--page) / 0.72), hsl(var(--page) / 0.84));
+    background: linear-gradient(180deg, hsl(var(--page) / 0.72), hsl(var(--page) / 0.82));
     pointer-events: none;
     z-index: 0;
   }
 
   .journal-leaf--photo::after {
-    opacity: 0.2;
+    opacity: 0.18;
   }
 
   .journal-editor .journal-h1 {
@@ -366,7 +388,7 @@
 
   .journal-editor .journal-quote {
     margin: 0.75rem 0;
-    border-left: 2px solid hsl(var(--lamp) / 0.4);
+    border-left: 2px solid hsl(var(--primary) / 0.35);
     padding-left: 0.85rem;
     color: hsl(var(--page-ink-muted));
   }
@@ -383,36 +405,22 @@
     margin: 0.4rem 0;
   }
 
-  .journal-editor .journal-checklist {
+  .journal-editor .journal-checklist,
+  .journal-editor .journal-li-checked,
+  .journal-editor .journal-li-unchecked {
     list-style: none;
     padding-left: 0;
   }
 
   .journal-editor .journal-li-checked,
   .journal-editor .journal-li-unchecked {
-    position: relative;
-    list-style: none;
-    margin: 0.25rem 0;
-    padding-left: 0.15rem;
+    margin: 0.2rem 0;
   }
 
   .journal-editor .journal-link {
     color: hsl(var(--page-ink));
     text-decoration: underline;
     text-underline-offset: 3px;
-  }
-
-  .lumen-surface {
-    background: hsl(var(--paper-elevated));
-    border: 1px solid hsl(var(--line) / 0.85);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-  }
-
-  .lumen-surface-quiet {
-    background: hsl(var(--paper-elevated) / 0.72);
-    border: 1px solid hsl(var(--line) / 0.55);
-    border-radius: var(--radius-md);
   }
 
   .lumen-ink-muted {
@@ -427,7 +435,7 @@
     box-shadow: var(--shadow-focus);
   }
 
-  /* Ambient paper wash (static language; very low motion) */
+  /* Ambient room wash (app — quieter than landing) */
   .lumen-ambient-root {
     position: relative;
     isolation: isolate;
@@ -440,9 +448,9 @@
     z-index: var(--z-base);
     opacity: var(--ambient-opacity);
     background:
-      radial-gradient(ellipse 90% 70% at 12% -10%, hsl(var(--lamp-mist) / 0.9), transparent 55%),
-      radial-gradient(ellipse 70% 55% at 100% 10%, hsl(var(--ember-soft) / 0.75), transparent 50%),
-      radial-gradient(ellipse 60% 50% at 50% 110%, hsl(var(--mist) / 0.8), transparent 55%);
+      radial-gradient(ellipse 85% 60% at 10% -8%, hsl(var(--ember) / 0.16), transparent 55%),
+      radial-gradient(ellipse 60% 50% at 100% 5%, hsl(var(--ember-core) / 0.1), transparent 50%),
+      radial-gradient(ellipse 65% 45% at 50% 110%, hsl(28 25% 10% / 0.5), transparent 55%);
   }
 
   .lumen-ambient-wash--drift {

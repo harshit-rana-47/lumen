@@ -31,18 +31,18 @@ export default function DesignSystemPage() {
     <AmbientBackground grain className="min-h-dvh text-ink" drift>
       <main className="relative mx-auto w-full max-w-5xl px-6 py-16 sm:py-20">
         <header className="mb-16 space-y-4">
-          <p className={typeClass.overline}>Lumen · Slice A</p>
+          <p className={typeClass.overline}>Lumen · Slice C</p>
           <RevealText
             as="h1"
-            text="Private lamp / living notebook"
+            text="Lamp Circle — app room"
             className={typeClass.displayLg}
           />
           <p className={cn(typeClass.bodyLg, "max-w-2xl text-ink-muted")}>
-            Design system preview. Tokens, atmosphere, and motion primitives — no landing page yet.
+            Application tokens: near-black chrome, amber light accent, parchment writing plane.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <MagneticButton>
-              <PressFeedback className="rounded-lumen-lg bg-lamp px-5 py-2.5 text-sm font-medium text-[hsl(var(--paper-elevated))] shadow-soft">
+              <PressFeedback className="rounded-lumen-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-soft">
                 Magnetic + press
               </PressFeedback>
             </MagneticButton>
@@ -55,9 +55,9 @@ export default function DesignSystemPage() {
 
         <section className="mb-20 grid gap-6 md:grid-cols-3">
           {[
-            { title: "Paper", swatch: "bg-paper border border-line", note: "Page field" },
-            { title: "Lamp", swatch: "bg-lamp", note: "Primary / focus" },
-            { title: "Ember", swatch: "bg-ember", note: "Sparse accent" }
+            { title: "Room", swatch: "bg-background border border-line", note: "Chrome field" },
+            { title: "Amber", swatch: "bg-primary", note: "Light / action" },
+            { title: "Page", swatch: "bg-page border border-line", note: "Writing plane" }
           ].map((item) => (
             <HoverLift key={item.title} className={cn(surfaceClass.surface, "p-5")}>
               <div className={cn("mb-4 h-16 rounded-lumen", item.swatch)} />

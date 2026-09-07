@@ -15,7 +15,7 @@ export function WeeklyReport({ report }: WeeklyReportProps) {
         <h2 className="text-base font-semibold">Report</h2>
       </div>
       <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-        {report?.report || "Your next report will appear after enough daily signal is available."}
+        {report?.report || "A weekly summary appears after you’ve journaled enough for Lumen to work with."}
       </p>
       {report?.cached ? <p className="mt-3 text-xs text-slate-500">Cached for today</p> : null}
     </section>

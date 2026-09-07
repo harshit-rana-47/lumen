@@ -233,10 +233,7 @@ export class MemoryService {
     return decryptMemory(data, await getUserDEK(userId));
   }
 
-  /**
-   * Lightweight relationship view derived from Postgres memory_items.
-   * Replaces Neo4j graph sync (removed in Phase 1.5).
-   */
+  /** Relationship view derived from `memory_items` (used by `/memory`). */
   async graph(userId: string): Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> {
     const { data, error } = await supabaseAdmin
       .from("memory_items")

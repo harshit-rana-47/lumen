@@ -12,7 +12,7 @@ type ChatInputProps = {
 
 export function ChatInput({
   disabled = false,
-  placeholder = "Ask Lumen about your story…",
+  placeholder = "Ask about your journal…",
   onSend
 }: ChatInputProps) {
   const [value, setValue] = useState("");
@@ -71,7 +71,7 @@ export function ChatInput({
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white outline-none transition-transform duration-[var(--motion-micro)] active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground outline-none transition-transform duration-micro active:scale-[0.97] focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" aria-hidden />

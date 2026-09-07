@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { shareInflight } from "@/lib/inflight";
+import { rememberInflight, READ_CACHE_TTL_MS } from "@/lib/inflight";
 import { useAuthStore, useHasApiSession } from "@/stores/authStore";
 
 type ProfileResponse = {
@@ -23,16 +23,16 @@ export function useProfile() {
   const fallbackName = typeof user?.user_metadata?.name === "string" ? user.user_metadata.name : "";
   const [name, setName] = useState(fallbackName);
   const [email, setEmail] = useState(fallbackEmail);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
-      const response = await shareInflight("auth-me", () =>
-        api.get<ApiEnvelope<ProfileResponse>>("/auth/me")
-      );
-      setName(response.data.data.name ?? "");
-      setEmail(response.data.data.email);
+      const data = await rememberInflight("auth-me", READ_CACHE_TTL_MS, async () => {
+        const response = await api.get<ApiEnvelope<ProfileResponse>>("/auth/me");
+        return response.data.data;
+      });
+      setName(data.name ?? "");
+      setEmail(data.email);
     } catch {
       setName(fallbackName);
       setEmail(fallbackEmail);

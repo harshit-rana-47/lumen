@@ -1,207 +1,194 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Flame, Save } from "lucide-react";
-import { createJournalEntry, useJournalList } from "@/hooks/useJournal";
+import { useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
+import { useJournalList } from "@/hooks/useJournal";
 import { useInsights } from "@/hooks/useInsights";
-import { api } from "@/lib/api";
+import { useJournalActivity } from "@/hooks/useJournalActivity";
+import { useLocalDay } from "@/hooks/useLocalDay";
+import { useOnThisDay } from "@/hooks/useOnThisDay";
+import { ActivityCalendar } from "@/components/today/ActivityCalendar";
+import { OnThisDay } from "@/components/today/OnThisDay";
+import { buildTodayView } from "@/lib/todayView";
+import { displayJournalTitle } from "@/lib/journalTitle";
 
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
+const SENTENCE_STARTERS = [
+  { href: "/journal/new", label: "Start with one sentence" },
+  { href: "/journal/new", label: "Write what you don’t want to forget" },
+  { href: "/journal/new", label: "Name one thing that happened" }
+] as const;
 
-function calculateStreak(entryDates: string[]) {
-  const dates = new Set(entryDates);
-  let streak = 0;
-  const cursor = new Date();
-
-  while (dates.has(cursor.toISOString().slice(0, 10))) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
-
+/**
+ * Today — daily destination.
+ *
+ * Mount budget is three requests: journal list, journal activity, insights list.
+ * No Groq call belongs here; the weekly report lives on Insights.
+ */
 export default function TodayPage() {
-  const { entries, reload } = useJournalList();
-  const { activeInsights } = useInsights();
-  const [journalText, setJournalText] = useState("");
-  const [mood, setMood] = useState(6);
-  const [energy, setEnergy] = useState(6);
-  const [anxiety, setAnxiety] = useState(4);
-  const [notes, setNotes] = useState("");
-  const [savingJournal, setSavingJournal] = useState(false);
-  const [savingCheckIn, setSavingCheckIn] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
+  const { today, hour } = useLocalDay();
+  const { entries, loading: entriesLoading, error: entriesError } = useJournalList({ recentOnly: true });
+  const { activeInsights } = useInsights({ includeMoodTrend: false, includeReport: false });
+  const { activity, summary, loading: activityLoading, error: activityError } = useJournalActivity(today);
+  const anniversary = useOnThisDay(activity, today);
 
-  const todayEntries = useMemo(
-    () => entries.filter((entry) => entry.entryDate === todayKey()),
-    [entries]
+  const view = useMemo(
+    () =>
+      buildTodayView({
+        today,
+        hour,
+        entries,
+        entriesLoading,
+        insights: activeInsights,
+        activity,
+        activityLoading,
+        anniversary
+      }),
+    [activeInsights, activity, activityLoading, anniversary, entries, entriesLoading, hour, today]
   );
-  const streak = useMemo(() => calculateStreak(entries.map((entry) => entry.entryDate)), [entries]);
-  const todayInsight = activeInsights[0] ?? null;
 
-  async function handleQuickJournal(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const body = journalText.trim();
-
-    if (!body) {
-      return;
-    }
-
-    setSavingJournal(true);
-    setMessage(null);
-    try {
-      await createJournalEntry({
-        title: "Today",
-        body,
-        type: "free",
-        moodScore: mood,
-        energyScore: energy,
-        entryDate: todayKey()
-      });
-      setJournalText("");
-      setMessage("Journal saved.");
-      await reload();
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Unable to save journal.");
-    } finally {
-      setSavingJournal(false);
-    }
-  }
-
-  async function handleCheckIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSavingCheckIn(true);
-    setMessage(null);
-
-    try {
-      await api.put("/daily-log", {
-        date: todayKey(),
-        mood,
-        energy,
-        anxiety,
-        notes: notes.trim() || undefined
-      });
-      setMessage("Check-in saved.");
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : "Unable to save check-in.");
-    } finally {
-      setSavingCheckIn(false);
-    }
-  }
+  const openDay = useCallback(
+    (date: string) => {
+      router.push(`/journal?date=${date}`);
+    },
+    [router]
+  );
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="rounded border border-[hsl(var(--border))] bg-white p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold">Today</h1>
-              <p className="mt-1 text-sm text-slate-500">{todayEntries.length} entries today</p>
-            </div>
+    <div className="mx-auto flex min-w-0 w-full max-w-2xl flex-col gap-10 py-2 sm:gap-12 sm:py-6">
+      <header className="space-y-3">
+        <p className="lumen-overline text-primary/90">
+          {view.greeting ?? "\u00a0"}
+        </p>
+        <h1 className="font-display text-3xl tracking-tight text-foreground sm:text-4xl">
+          {view.dateLine ?? "\u00a0"}
+        </h1>
+        <p className="max-w-md text-sm leading-relaxed text-ink-muted sm:text-base">
+          {view.presence ?? "\u00a0"}
+        </p>
+      </header>
+
+      <section className="relative min-w-0 overflow-hidden rounded-lumen-lg border border-border/60 bg-surface-elevated/80 p-5 sm:p-7">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl"
+        />
+        <p className="lumen-overline relative">Today&apos;s Thread</p>
+        <p className="relative mt-3 max-w-xl text-[0.95rem] leading-relaxed text-ink-muted sm:text-base">
+          {view.question ?? (entriesLoading ? "Loading…" : "\u00a0")}
+        </p>
+        {view.threadKind === "first-use" ? (
+          <p className="relative mt-4 max-w-md font-display text-xl leading-snug text-foreground sm:text-2xl">
+            Nothing is on the page yet. Write something today, and tomorrow will have a thread to
+            continue.
+          </p>
+        ) : null}
+        {entriesError && !entriesLoading ? (
+          <p className="relative mt-3 text-sm text-[hsl(var(--accent))]" role="alert">
+            {entriesError}
+          </p>
+        ) : null}
+
+        {view.latest ? (
+          <blockquote className="relative mt-5 border-l border-primary/35 pl-4">
+            <span className="block text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+              Latest · {view.latest.entryDate}
+            </span>
+            <span className="mt-2 block font-display text-xl leading-snug text-foreground sm:text-2xl">
+              {displayJournalTitle(view.latest)}
+            </span>
+          </blockquote>
+        ) : null}
+
+        <div className="relative mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Link
+            href={view.threadHref}
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground outline-none transition-transform duration-micro active:scale-[0.98] focus-visible:shadow-focus"
+          >
+            {view.threadLabel}
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+          {view.showNewEntry ? (
             <Link
               href="/journal/new"
-              className="inline-flex h-10 items-center gap-2 rounded border border-[hsl(var(--border))] px-3 text-sm text-slate-700 hover:bg-[hsl(var(--muted))]"
+              className="text-sm text-ink-muted underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus"
             >
-              Open editor
-              <ArrowRight className="h-4 w-4" />
+              New page
             </Link>
-          </div>
-
-          <form onSubmit={handleQuickJournal} className="space-y-4">
-            <textarea
-              value={journalText}
-              onChange={(event) => setJournalText(event.target.value)}
-              rows={8}
-              className="w-full resize-none rounded border border-[hsl(var(--border))] p-3 text-sm leading-6 outline-none focus:border-[hsl(var(--primary))]"
-              placeholder="Write what is on your mind."
-            />
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-                <span>Mood {mood}</span>
-                <span>Energy {energy}</span>
-              </div>
-              <button
-                type="submit"
-                disabled={savingJournal || !journalText.trim()}
-                className="inline-flex h-10 items-center gap-2 rounded bg-[hsl(var(--primary))] px-4 text-sm font-medium text-white disabled:opacity-60"
-              >
-                <Save className="h-4 w-4" />
-                {savingJournal ? "Saving" : "Save"}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <aside className="space-y-4">
-          <section className="rounded border border-[hsl(var(--border))] bg-white p-5">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded bg-[hsl(var(--muted))] text-[hsl(var(--primary))]">
-                <Flame className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-2xl font-semibold">{streak}</p>
-                <p className="text-sm text-slate-500">day streak</p>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded border border-[hsl(var(--border))] bg-white p-5">
-            <p className="text-sm font-semibold">Today&apos;s insight</p>
-            <p className="mt-3 text-sm leading-6 text-slate-700">
-              {todayInsight?.summary || "No insight queued for today yet."}
-            </p>
-          </section>
-        </aside>
-      </div>
-
-      <form onSubmit={handleCheckIn} className="rounded border border-[hsl(var(--border))] bg-white p-5">
-        <h2 className="text-base font-semibold">Daily check-in</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {[
-            { label: "Mood", value: mood, setValue: setMood },
-            { label: "Energy", value: energy, setValue: setEnergy },
-            { label: "Anxiety", value: anxiety, setValue: setAnxiety }
-          ].map((item) => (
-            <label key={item.label} className="space-y-2 text-sm">
-              <span className="flex justify-between font-medium">
-                {item.label}
-                <span>{item.value}</span>
-              </span>
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={item.value}
-                onChange={(event) => item.setValue(Number(event.target.value))}
-                className="w-full accent-[hsl(var(--primary))]"
-              />
-            </label>
-          ))}
+          ) : null}
+          {view.showTalk && view.talkHref ? (
+            <Link
+              href={view.talkHref}
+              className="text-sm text-ink-faint underline-offset-4 outline-none hover:text-ink-muted hover:underline focus-visible:shadow-focus"
+            >
+              Talk this through
+            </Link>
+          ) : null}
         </div>
 
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          rows={3}
-          className="mt-4 w-full resize-none rounded border border-[hsl(var(--border))] p-3 text-sm leading-6"
-          placeholder="Notes"
-        />
+        {view.showStarters ? (
+          <p className="relative mt-5 max-w-lg text-sm leading-relaxed text-ink-faint">
+            {SENTENCE_STARTERS.map((starter, index) => (
+              <span key={starter.label}>
+                {index > 0 ? <span className="px-2 text-ink-faint/50">·</span> : null}
+                <Link
+                  href={starter.href}
+                  className="underline-offset-4 outline-none hover:text-ink-muted hover:underline focus-visible:shadow-focus"
+                >
+                  {starter.label}
+                </Link>
+              </span>
+            ))}
+          </p>
+        ) : null}
+      </section>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">{message}</p>
-          <button
-            type="submit"
-            disabled={savingCheckIn}
-            className="h-10 rounded bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {savingCheckIn ? "Saving" : "Save check-in"}
-          </button>
-        </div>
-      </form>
+      <p className="text-sm leading-relaxed text-ink-muted">
+        {view.hasWrittenToday ? (
+          <>
+            <span className="tabular-nums text-foreground/85">
+              {view.todayEntryCount} {view.todayEntryCount === 1 ? "entry" : "entries"}
+            </span>
+            {view.wordsToday > 0 ? (
+              <>
+                <span className="text-ink-faint"> · </span>
+                <span className="tabular-nums">{view.wordsToday} words</span>
+              </>
+            ) : null}
+            <span className="text-ink-faint"> today</span>
+          </>
+        ) : (
+          "Nothing written today."
+        )}
+      </p>
+
+      <ActivityCalendar
+        activity={activity}
+        summary={summary}
+        today={today}
+        loading={activityLoading}
+        error={activityLoading ? null : activityError}
+        onSelectDay={openDay}
+      />
+
+      <OnThisDay anniversary={anniversary} />
+
+      <section aria-labelledby="lately" className="space-y-2">
+        <h2 id="lately" className="lumen-overline">
+          Lately
+        </h2>
+        {view.insight ? (
+          <p className="max-w-xl font-display text-lg leading-snug text-foreground/90 sm:text-xl">
+            {view.insight.summary}
+          </p>
+        ) : (
+          <p className="max-w-md text-sm leading-relaxed text-ink-muted">
+            Patterns from your writing will gather here.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

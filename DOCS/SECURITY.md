@@ -23,7 +23,7 @@ Policies exist in migrations. **Not live-verified** until `db:migrate` + `db:ver
 
 ## Rate limits
 
-In-process `express-rate-limit` (Redis removed). Fine for single instance.
+In-process `express-rate-limit`. Fine for a single API instance.
 
 ## Account deletion
 

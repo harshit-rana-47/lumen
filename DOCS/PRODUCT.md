@@ -1,10 +1,12 @@
 # PRODUCT.md
 
-Last updated: 2026-08-31 (Visual Rebuild plan)
+Last updated: 2026-09-04 (Copy clarity pass)
 
 ## Product identity
 
-**Lumen** is a private AI journaling companion (UI may brand as Dear Diary). Privacy and continuity of personal writing are central.
+**Lumen** is a private AI journaling companion. Privacy and continuity of personal writing are central.
+
+**User-facing messaging:** creative in expression, clear in meaning. Lead with what the product does (write, keep track of entries, notice patterns, reflect on one entry, chat with accumulated context). Keep Lamp Circle metaphors in visuals, not as the main copy.
 
 ## Core loop (approved)
 
@@ -35,7 +37,7 @@ Every journal entry UI must show a permanent bold **“Dear Diary,”** heading 
 
 **Today · Journal · Chat · You**
 
-- **Today** — daily *presence* and re-entry into writing (**not** a generic Daily Check-In form). Planned: **Today’s Thread (Continuum)** — see `FRONTEND.md`  
+- **Today** — **Today’s Thread**: a plain invitation back into journaling from a recent insight or entry (**not** a generic Daily Check-In form). See `FRONTEND.md`  
 - **Journal** — list + write/edit entries  
 - **Chat** — General Chat with global context  
 - **You** — account, preferences, data controls (settings/profile)
@@ -54,24 +56,25 @@ Every journal entry UI must show a permanent bold **“Dear Diary,”** heading 
 
 **Deprecated as Today’s hero.** Manual mood/energy/anxiety sliders do not leverage Lumen’s memory/AI advantage.
 
-**Recommended replacement (awaiting approval):** Today’s Thread / Continuum — one memory-informed writing invitation + path into Journal. Details and alternatives ranked in `DOCS/FRONTEND.md`.
+**Recommended replacement:** Today’s Thread — one writing invitation + path into Journal. Details in `DOCS/FRONTEND.md`.
 
 `PUT /api/v1/daily-log` may remain available but must not define the Today experience.
 
 ## V1 scope
 
-In scope: journaling, **Today Continuum (pending)**, memory extraction/correction path, general chat, reflect-on-entry, encryption, account data purge, auth, **visual rebuild** of landing/auth/app.
+In scope: journaling, **Today’s Thread**, memory extraction/correction path, general chat, reflect-on-entry, encryption, account data purge, auth, **visual rebuild** of landing/auth/app.
 
 Out of scope for V1 (deferred): habits tracker, voice/image entries, collaborative workspaces, native mobile apps, multi-provider LLM picker, complex graph visualization, push notifications, separate Timeline destination, rich chat personalities/intents, realtime multi-device sync, and other V1.1/V1.2 features unless required for architecture cutover.
 
 ## Current product UI (actual codebase)
 
-V1 nav **Today · Journal · Chat · You** is live. Journal + Reflect + Chat functional. Landing / Auth / Today / You still visually transitional — **Visual Rebuild slices A–J** planned (`FRONTEND.md`).
+V1 nav **Today · Journal · Chat · You** is live. Journal + Reflect + Chat functional. **Landing (B) + App/Auth (C)** share Lamp Circle identity. Today is Today’s Thread, not Daily Check-In. **Copy** leads with concrete product language.
 
 ## Visual + motion identity
 
-- Landing: cinematic scroll storytelling  
-- App: expressive, tactile, calm  
-- One art direction (“private lamp / living notebook”) — see `FRONTEND.md`
+- Landing: **Lamp Circle** immersive environment  
+- App: calmer Lamp Circle **room** — near-black chrome, amber light accents, parchment writing plane  
+- Auth: quiet doorway into the room  
+- See `FRONTEND.md`
 
 Journal remains writing-first. Reflect is a signature spatial interaction. Dear Diary chrome is permanent bold UI-only identity.

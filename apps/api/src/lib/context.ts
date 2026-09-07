@@ -1,3 +1,4 @@
+import { journalPlainText, titleFromPlain } from "./journalDocument";
 import { embedText } from "../config/embeddings";
 import { supabaseAdmin } from "../config/supabase";
 import { decrypt } from "./encrypt";
@@ -42,18 +43,21 @@ function truncate(value: string, maxLength: number): string {
 }
 
 function decryptJournalRow(row: JournalSummaryRow, dek: string): string {
-  const title = decryptOptionalText(row.title_encrypted, dek) ?? "Untitled";
-  const body = decryptRequiredText(
-    row.body_encrypted,
-    dek,
-    row.iv && row.auth_tag
-      ? {
-          ciphertext: row.body_encrypted,
-          iv: row.iv,
-          authTag: row.auth_tag
-        }
-      : undefined
+  const storedTitle = decryptOptionalText(row.title_encrypted, dek);
+  const body = journalPlainText(
+    decryptRequiredText(
+      row.body_encrypted,
+      dek,
+      row.iv && row.auth_tag
+        ? {
+            ciphertext: row.body_encrypted,
+            iv: row.iv,
+            authTag: row.auth_tag
+          }
+        : undefined
+    )
   );
+  const title = storedTitle?.trim() || titleFromPlain(body) || row.entry_date;
 
   return `${row.entry_date} - ${title}: ${truncate(body, 280)}`;
 }

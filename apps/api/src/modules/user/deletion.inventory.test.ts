@@ -1,4 +1,4 @@
-import { USER_DATA_TABLES } from "./user.service";
+import { USER_DATA_TABLES, USER_STORAGE_BUCKETS } from "./user.service";
 import { jobNames } from "../../jobs/pgboss";
 
 describe("account deletion inventory", () => {
@@ -16,6 +16,10 @@ describe("account deletion inventory", () => {
         "goals"
       ])
     );
+  });
+
+  it("purges journal media and export objects from Storage", () => {
+    expect(USER_STORAGE_BUCKETS).toEqual(["journal-media", "user-exports"]);
   });
 
   it("does not delete audit_logs (forensic retention)", () => {

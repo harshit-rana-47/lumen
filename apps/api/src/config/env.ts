@@ -55,8 +55,8 @@ const envSchema = z.object({
   GROQ_API_KEY: requiredString,
   MASTER_ENCRYPTION_KEY: masterEncryptionKey,
 
-  GROQ_CHAT_MODEL: requiredString.default("llama-3.3-70b-versatile"),
-  GROQ_WORKER_MODEL: requiredString.default("llama-3.1-8b-instant"),
+  GROQ_CHAT_MODEL: requiredString.default("openai/gpt-oss-120b"),
+  GROQ_WORKER_MODEL: requiredString.default("openai/gpt-oss-20b"),
   EMBEDDING_MODEL: requiredString.default("Xenova/all-MiniLM-L6-v2"),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(384)
 });

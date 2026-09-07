@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import { shareInflight } from "@/lib/inflight";
+import { getRemembered, READ_CACHE_TTL_MS, rememberInflight } from "@/lib/inflight";
 import { ACTIVITY_WINDOW_DAYS, summarizeActivity, type JournalActivity } from "@/lib/activity";
 import { useHasApiSession } from "@/stores/authStore";
 
@@ -11,33 +11,35 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
-/**
- * Per-day journal counts for the activity calendar.
- *
- * Waits for the local day before requesting so the window is anchored to the
- * user's calendar rather than the server's. Shares the in-flight promise so a
- * Strict Mode double mount still produces exactly one request.
- */
+function activityKey(end: string): string {
+  return `journal-activity:${end}`;
+}
+
 export function useJournalActivity(today: string | null) {
   const canFetch = useHasApiSession();
-  const [activity, setActivity] = useState<JournalActivity | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = today ? getRemembered<JournalActivity>(activityKey(today)) : undefined;
+  const [activity, setActivity] = useState<JournalActivity | null>(cached ?? null);
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (end: string) => {
-    setLoading(true);
+    const hadCache = getRemembered<JournalActivity>(activityKey(end)) !== undefined;
+    if (!hadCache) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
-      const response = await shareInflight(`journal-activity:${end}`, () =>
-        api.get<ApiEnvelope<JournalActivity>>("/journal/activity", {
+      const data = await rememberInflight(activityKey(end), READ_CACHE_TTL_MS, async () => {
+        const response = await api.get<ApiEnvelope<JournalActivity>>("/journal/activity", {
           params: {
             days: ACTIVITY_WINDOW_DAYS,
             end
           }
-        })
-      );
-      setActivity(response.data.data);
+        });
+        return response.data.data;
+      });
+      setActivity(data);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load your activity.");
     } finally {
@@ -63,7 +65,7 @@ export function useJournalActivity(today: string | null) {
   return {
     activity,
     summary,
-    loading: canFetch && (loading || !today),
+    loading: canFetch && !activity && (loading || !today),
     error
   };
 }

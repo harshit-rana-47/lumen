@@ -16,7 +16,8 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Lumen",
-  description: "Private AI journaling companion."
+  description:
+    "Lumen is an AI journaling companion. Write, reflect on an entry, and talk using context from your journal."
 };
 
 type RootLayoutProps = {

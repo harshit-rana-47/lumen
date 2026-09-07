@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { api } from "@/lib/api";
+import { waitForApiReady } from "@/lib/apiReadiness";
+import { useApiReady } from "@/hooks/useApiReady";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function RegisterPage() {
   const router = useRouter();
   const restoreSession = useAuthStore((state) => state.restoreSession);
+  const apiReady = useApiReady();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,6 +41,7 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
+      await waitForApiReady();
       await api.post("/auth/register", {
         name,
         email,
@@ -61,57 +65,84 @@ export default function RegisterPage() {
       await restoreSession();
       router.replace("/today");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to register.");
+      const apiMessage =
+        caught &&
+        typeof caught === "object" &&
+        "response" in caught &&
+        (caught as { response?: { data?: { error?: unknown } } }).response?.data?.error;
+
+      setError(
+        typeof apiMessage === "string" && apiMessage.trim()
+          ? apiMessage
+          : caught instanceof Error
+            ? caught.message
+            : "Unable to register."
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6">
-      <h1 className="text-3xl font-semibold">Create account</h1>
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
+      <Link href="/" className="font-display text-2xl tracking-tight text-foreground">
+        Lumen
+      </Link>
+      <p className="mt-8 lumen-overline text-primary/90">Get started</p>
+      <h1 className="mt-3 font-display text-3xl tracking-tight">Create your journal</h1>
+      <p className="mt-2 text-sm text-ink-muted">
+        Sign up to start writing. Lumen uses what you save as context for Chat and Reflect.
+      </p>
+      {apiReady === "starting" ? (
+        <p className="mt-6 text-sm text-ink-muted">Starting Lumen…</p>
+      ) : null}
+      {apiReady === "unreachable" ? (
+        <p className="mt-6 text-sm text-danger">
+          Can&apos;t reach the Lumen API. Make sure it is running, then try again.
+        </p>
+      ) : null}
       <form className="mt-8 space-y-4" onSubmit={onSubmit}>
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-ink-muted">
           Name
           <input
-            className="mt-2 w-full rounded border border-[hsl(var(--border))] bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lumen border border-border bg-surface px-3 py-2.5 text-foreground outline-none transition-shadow focus-visible:shadow-focus"
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoComplete="name"
           />
         </label>
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-ink-muted">
           Email
           <input
-            className="mt-2 w-full rounded border border-[hsl(var(--border))] bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lumen border border-border bg-surface px-3 py-2.5 text-foreground outline-none transition-shadow focus-visible:shadow-focus"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
           />
         </label>
-        <label className="block text-sm font-medium">
+        <label className="block text-sm font-medium text-ink-muted">
           Password
           <input
-            className="mt-2 w-full rounded border border-[hsl(var(--border))] bg-white px-3 py-2"
+            className="mt-2 w-full rounded-lumen border border-border bg-surface px-3 py-2.5 text-foreground outline-none transition-shadow focus-visible:shadow-focus"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="new-password"
           />
         </label>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         <button
-          className="w-full rounded bg-[hsl(var(--primary))] px-4 py-2 font-medium text-white disabled:opacity-60"
+          className="w-full rounded-full bg-primary px-4 py-2.5 font-semibold text-primary-foreground outline-none transition-transform duration-micro active:scale-[0.99] focus-visible:shadow-focus disabled:opacity-60"
           type="submit"
-          disabled={submitting}
+          disabled={submitting || apiReady !== "ready"}
         >
-          {submitting ? "Creating..." : "Create account"}
+          {submitting ? "Creating…" : apiReady === "starting" ? "Waiting for Lumen…" : "Create account"}
         </button>
       </form>
-      <p className="mt-6 text-sm">
+      <p className="mt-6 text-sm text-ink-muted">
         Already have an account?{" "}
-        <Link className="font-medium text-[hsl(var(--primary))]" href="/login">
+        <Link className="font-medium text-primary outline-none hover:underline focus-visible:shadow-focus" href="/login">
           Log in
         </Link>
       </p>

@@ -51,7 +51,9 @@ export default function MemoryPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Memory</h1>
-          <p className="mt-1 text-sm text-slate-500">{memories.length} saved memories</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Facts Lumen extracts from your journal so Chat and Reflect can use relevant context.
+          </p>
         </div>
         <button
           type="button"
@@ -114,12 +116,19 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      {loading ? <p className="rounded border border-[hsl(var(--border))] bg-white p-4 text-sm text-slate-500">Loading memory</p> : null}
+      {loading ? <p className="rounded border border-[hsl(var(--border))] bg-white p-4 text-sm text-ink-muted">Loading memories…</p> : null}
       {error ? <p className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="min-w-0">
-          {viewMode === "graph" ? (
+          {!loading && memories.length === 0 ? (
+            <div className="rounded border border-dashed border-[hsl(var(--border))] bg-surface-elevated p-8 text-center">
+              <p className="text-sm font-medium text-foreground">No memories yet.</p>
+              <p className="mt-2 text-sm text-ink-muted">
+                They appear after you write journal entries and Lumen extracts lasting facts from them.
+              </p>
+            </div>
+          ) : viewMode === "graph" ? (
             <MemoryGraph
               nodes={graph.nodes}
               edges={graph.edges}
@@ -158,11 +167,13 @@ export default function MemoryPage() {
                   <p className="text-xs text-slate-500">Updated {new Date(selectedDetails.updatedAt).toLocaleString()}</p>
                 </>
               ) : (
-                <p className="text-sm text-slate-500">Select a memory node to inspect its saved value.</p>
+                <p className="text-sm text-ink-muted">Select a memory to see its saved value.</p>
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Select a node or list item.</p>
+            <p className="text-sm text-ink-muted">
+              Select a memory to see the fact Lumen saved from your journal.
+            </p>
           )}
         </aside>
       </div>

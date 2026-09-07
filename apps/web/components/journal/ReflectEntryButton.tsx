@@ -29,7 +29,7 @@ export function ReflectEntryButton({ disabled, className, onReflect }: ReflectEn
       )}
     >
       <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-      Reflect on this
+      Reflect on entry
     </button>
   );
 }

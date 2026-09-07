@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  $createNodeSelection,
-  $getRoot,
-  $getSelection,
-  $insertNodes,
-  $isRangeSelection,
-  $setSelection,
-  COMMAND_PRIORITY_EDITOR
-} from "lexical";
+import { $getRoot, $getSelection, $insertNodes, $isRangeSelection, COMMAND_PRIORITY_EDITOR } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $createImageNode, INSERT_IMAGE_COMMAND } from "@/components/editor/nodes/ImageNode";
 
@@ -27,9 +19,6 @@ export function ImagesPlugin() {
         } else {
           $getRoot().append(node);
         }
-        const nodeSelection = $createNodeSelection();
-        nodeSelection.add(node.getKey());
-        $setSelection(nodeSelection);
         return true;
       },
       COMMAND_PRIORITY_EDITOR

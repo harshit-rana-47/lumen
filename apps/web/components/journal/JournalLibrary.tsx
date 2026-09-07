@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, MoreHorizontal, Plus } from "lucide-react";
 import { FadeReveal } from "@/components/motion/FadeReveal";
 import { ThinkingIndicator } from "@/components/motion";
@@ -193,13 +193,7 @@ function DayBlock({
 
 export function JournalLibrary() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { entries, loading, error, reload } = useJournalWorkspace();
-  const dateFilter = searchParams.get("date");
-  const yearParam = searchParams.get("year");
-  const monthParam = searchParams.get("month");
-  const yearFilter = yearParam ? Number(yearParam) : null;
-  const monthFilter = monthParam ? Number(monthParam) : null;
+  const { entries, loading, error, dateFilter, yearFilter, monthFilter, reload } = useJournalWorkspace();
   const archive = buildJournalArchive(entries);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<JournalEntrySummary | null>(null);

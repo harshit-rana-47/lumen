@@ -1,8 +1,8 @@
 /**
- * pg-boss worker entry (active queue).
+ * pg-boss worker entry.
  *
- *   npm -w @lumen/api run start:pgboss
- *   npm -w @lumen/api run dev:pgboss
+ *   npm -w @lumen/api run start:workers
+ *   npm -w @lumen/api run dev:workers
  */
 
 import type { Job } from "pg-boss";
@@ -17,6 +17,7 @@ import {
 import { processEmbeddingJob } from "../workers/embedding.worker";
 import { processMemoryJob } from "../workers/memory.worker";
 import { processInsightJob } from "../workers/insight.worker";
+import { bindProcessShutdown } from "../lib/processShutdown";
 
 async function main(): Promise<void> {
   const boss = await getPgBoss();
@@ -36,6 +37,7 @@ async function main(): Promise<void> {
   await ensureNightlyInsightSchedule();
 
   logger.info({ jobs: Object.values(jobNames) }, "pg-boss workers registered");
+  bindProcessShutdown();
 }
 
 main().catch((error: unknown) => {

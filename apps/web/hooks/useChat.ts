@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { API_BASE_URL, api } from "@/lib/api";
+import { forgetRemembered, getRemembered, READ_CACHE_TTL_MS, rememberInflight } from "@/lib/inflight";
 import { supabase, syncSessionCookies } from "@/lib/supabase";
 import { entryIdFromReflectTitle } from "@/lib/reflectSession";
+import { useHasApiSession } from "@/stores/authStore";
+import { titleFromPlain } from "@lumen/shared";
 
 export type ChatSession = {
   id: string;
@@ -37,7 +40,7 @@ type StreamEvent = {
   done?: boolean;
 };
 
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const apiBaseUrl = API_BASE_URL;
 const GENERAL_MODE = "general" as const;
 
 function isGeneralSession(session: ChatSession): boolean {
@@ -54,7 +57,11 @@ async function accessToken(): Promise<string | null> {
   const {
     data: { session }
   } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  const token = session?.access_token ?? null;
+  if (!token) {
+    return null;
+  }
+  return token;
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -77,10 +84,19 @@ async function refreshAccessToken(): Promise<string | null> {
  * Reflect uses `useReflectChat` separately.
  */
 export function useChat() {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const canFetch = useHasApiSession();
+  const cachedSessions = getRemembered<ChatSession[]>("chat-sessions");
+  const [sessions, setSessions] = useState<ChatSession[]>(cachedSessions ?? []);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    const general = (cachedSessions ?? []).filter(isGeneralSession);
+    return general[0]?.id ?? null;
+  });
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const general = (cachedSessions ?? []).filter(isGeneralSession);
+    const firstId = general[0]?.id;
+    return firstId ? (getRemembered<ChatMessage[]>(`chat-messages:${firstId}`) ?? []) : [];
+  });
+  const [sessionsLoading, setSessionsLoading] = useState(!cachedSessions);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [waitingForFirstToken, setWaitingForFirstToken] = useState(false);
@@ -96,11 +112,17 @@ export function useChat() {
   );
 
   const loadSessions = useCallback(async () => {
-    setSessionsLoading(true);
+    const hadCache = getRemembered<ChatSession[]>("chat-sessions") !== undefined;
+    if (!hadCache) {
+      setSessionsLoading(true);
+    }
     try {
-      const response = await api.get<ApiEnvelope<ChatSession[]>>("/chat/sessions");
-      const next = response.data.data.filter(isGeneralSession);
-      setSessions(response.data.data);
+      const nextSessions = await rememberInflight("chat-sessions", READ_CACHE_TTL_MS, async () => {
+        const response = await api.get<ApiEnvelope<ChatSession[]>>("/chat/sessions");
+        return response.data.data;
+      });
+      const next = nextSessions.filter(isGeneralSession);
+      setSessions(nextSessions);
 
       setActiveSessionId((current) => {
         if (current && next.some((session) => session.id === current)) {
@@ -114,13 +136,25 @@ export function useChat() {
   }, []);
 
   const loadMessages = useCallback(async (sessionId: string) => {
-    setMessagesLoading(true);
+    const key = `chat-messages:${sessionId}`;
+    const cached = getRemembered<ChatMessage[]>(key);
+    if (cached) {
+      if (activeSessionIdRef.current === sessionId) {
+        setMessages(cached);
+        setMessagesLoading(false);
+      }
+    } else if (activeSessionIdRef.current === sessionId) {
+      setMessagesLoading(true);
+    }
     try {
-      const response = await api.get<ApiEnvelope<MessagesResponse>>(`/chat/sessions/${sessionId}/messages`, {
-        params: { limit: 100 }
+      const nextMessages = await rememberInflight(key, READ_CACHE_TTL_MS, async () => {
+        const response = await api.get<ApiEnvelope<MessagesResponse>>(`/chat/sessions/${sessionId}/messages`, {
+          params: { limit: 100 }
+        });
+        return response.data.data.messages;
       });
       if (activeSessionIdRef.current === sessionId) {
-        setMessages(response.data.data.messages);
+        setMessages(nextMessages);
       }
     } finally {
       if (activeSessionIdRef.current === sessionId) {
@@ -130,11 +164,19 @@ export function useChat() {
   }, []);
 
   useEffect(() => {
+    if (!canFetch) {
+      setSessions([]);
+      setActiveSessionId(null);
+      setError(null);
+      setSessionsLoading(false);
+      return;
+    }
+
     void loadSessions().catch((caught) => {
       setError(caught instanceof Error ? caught.message : "Unable to load conversations.");
       setSessionsLoading(false);
     });
-  }, [loadSessions]);
+  }, [canFetch, loadSessions]);
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -154,6 +196,7 @@ export function useChat() {
       mode: GENERAL_MODE
     });
     const created = response.data.data;
+    forgetRemembered("chat-sessions");
     setSessions((current) => [created, ...current]);
     setActiveSessionId(created.id);
     setMessages([]);
@@ -232,7 +275,7 @@ export function useChat() {
               ? {
                   ...item,
                   updated_at: new Date().toISOString(),
-                  title: item.title ?? trimmed.slice(0, 80)
+                  title: item.title?.trim() ? item.title : titleFromPlain(trimmed, 48) ?? item.title
                 }
               : item
           );
@@ -310,6 +353,8 @@ export function useChat() {
 
         // Refresh persisted messages for this session only — not the full list on every token.
         if (activeSessionIdRef.current === session.id) {
+          forgetRemembered(`chat-messages:${session.id}`);
+          forgetRemembered("chat-sessions");
           await loadMessages(session.id);
         }
       } catch (caught) {
@@ -336,6 +381,17 @@ export function useChat() {
     setActiveSessionId(sessionId);
   }, []);
 
+  const deleteSession = useCallback(async (sessionId: string) => {
+    await api.delete(`/chat/sessions/${sessionId}`);
+    forgetRemembered("chat-sessions");
+    forgetRemembered(`chat-messages:${sessionId}`);
+    setSessions((current) => current.filter((session) => session.id !== sessionId));
+    if (activeSessionIdRef.current === sessionId) {
+      setActiveSessionId(null);
+      setMessages([]);
+    }
+  }, []);
+
   return {
     sessions: generalSessions,
     activeSession,
@@ -350,6 +406,7 @@ export function useChat() {
     clearError: () => setError(null),
     sendMessage,
     startNewChat,
+    deleteSession,
     reloadSessions: loadSessions
   };
 }

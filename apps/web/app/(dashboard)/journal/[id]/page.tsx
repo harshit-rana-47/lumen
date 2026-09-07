@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { JournalEditor } from "@/components/editor/JournalEditor";
 import { JournalReader } from "@/components/journal/JournalReader";
@@ -9,7 +9,7 @@ import { ThinkingIndicator } from "@/components/motion";
 import { getJournalEntry, type JournalEntry } from "@/hooks/useJournal";
 import Link from "next/link";
 
-function JournalEntryPage() {
+export default function JournalEntryPage() {
   const { reload } = useJournalWorkspace();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -86,18 +86,4 @@ function JournalEntryPage() {
   }
 
   return <JournalReader key={entry.id} entry={entry} onDeleted={() => void reload()} />;
-}
-
-export default function JournalEntryRoute() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[60dvh] items-center justify-center">
-          <ThinkingIndicator label="Opening this page" />
-        </div>
-      }
-    >
-      <JournalEntryPage />
-    </Suspense>
-  );
 }

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../config/supabase";
+import { journalPlainText } from "../lib/journalDocument";
 import { getUserDEK } from "../lib/userDEK";
 import { decryptRequiredText } from "../modules/journal/journal.encrypt";
 
@@ -30,16 +31,18 @@ export async function getDecryptedJournalBody(data: JournalJobData): Promise<str
 
   const dek = await getUserDEK(row.user_id);
 
-  return decryptRequiredText(
-    row.body_encrypted,
-    dek,
-    row.iv && row.auth_tag
-      ? {
-          ciphertext: row.body_encrypted,
-          iv: row.iv,
-          authTag: row.auth_tag
-        }
-      : undefined
+  return journalPlainText(
+    decryptRequiredText(
+      row.body_encrypted,
+      dek,
+      row.iv && row.auth_tag
+        ? {
+            ciphertext: row.body_encrypted,
+            iv: row.iv,
+            authTag: row.auth_tag
+          }
+        : undefined
+    )
   );
 }
 

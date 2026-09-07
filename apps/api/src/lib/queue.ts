@@ -1,6 +1,4 @@
-/**
- * Queue facade — pg-boss is the only active queue (BullMQ removed in Phase 1.5).
- */
+/** pg-boss job helpers used by the API and workers. */
 export {
   enqueueEmbedJob,
   enqueueMemoryJob,

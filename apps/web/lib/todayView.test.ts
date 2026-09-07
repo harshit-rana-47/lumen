@@ -52,6 +52,7 @@ describe("Today view states", () => {
     expect(view.threadKind).toBe("first-use");
     expect(view.showStarters).toBe(true);
     expect(view.showTalk).toBe(false);
+    expect(view.talkHref).toBeNull();
     expect(view.showNewEntry).toBe(false);
     expect(view.hasWrittenToday).toBe(false);
     expect(view.hasAnniversary).toBe(false);
@@ -69,6 +70,7 @@ describe("Today view states", () => {
     expect(view.threadKind).toBe("history");
     expect(view.latest?.title).toBe("checking");
     expect(view.showTalk).toBe(true);
+    expect(view.talkHref).toBe("/journal/1?reflect=1");
     expect(view.showNewEntry).toBe(true);
     expect(view.showStarters).toBe(false);
     expect(view.hasWrittenToday).toBe(false);

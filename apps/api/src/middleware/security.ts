@@ -31,7 +31,27 @@ export const helmetMiddleware = helmet({
 });
 
 export const corsMiddleware = cors({
-  origin: env.APP_URL,
+  origin(origin, callback) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const allowed = new Set([env.APP_URL]);
+    if (env.NODE_ENV !== "production") {
+      allowed.add("http://localhost:3000");
+      allowed.add("http://127.0.0.1:3000");
+      allowed.add("http://localhost:3001");
+      allowed.add("http://127.0.0.1:3001");
+    }
+
+    if (allowed.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked origin ${origin}`));
+  },
   credentials: true
 });
 

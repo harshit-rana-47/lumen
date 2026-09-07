@@ -18,8 +18,8 @@ export function ChatEmptyState({ onSuggest, disabled }: ChatEmptyStateProps) {
     <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-10 text-center sm:py-16">
       <p className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Chat with Lumen</p>
       <p className="mt-4 text-base leading-relaxed text-foreground/65">
-        Ask about your story across journals and memories — patterns, themes, and what has been on your mind. This is
-        not Reflect: nothing here is pinned to a single page.
+        This is a general conversation based on your journal as a whole. To look at one specific entry, open it in
+        Journal and choose Reflect.
       </p>
 
       <ul className="mt-8 flex w-full flex-col gap-2">

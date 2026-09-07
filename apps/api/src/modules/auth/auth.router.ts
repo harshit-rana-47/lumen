@@ -1,4 +1,5 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router, type Request, type Response } from "express";
+import { asyncHandler } from "../../lib/asyncHandler";
 import { authMiddleware } from "../../middleware/auth";
 import { authLimiter, registerLimiter } from "../../middleware/rateLimit";
 import { validateBody } from "../../middleware/validate";
@@ -13,14 +14,6 @@ import {
   type RegisterInput
 } from "./auth.schema";
 import { authService } from "./auth.service";
-
-type AsyncHandler = (request: Request, response: Response, next: NextFunction) => Promise<void> | void;
-
-function asyncHandler(handler: AsyncHandler): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction): void => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 export const authRouter = Router();
 

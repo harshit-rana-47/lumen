@@ -1,6 +1,6 @@
 # TESTING.md
 
-Last updated: 2026-08-30 (local env stabilization)
+Last updated: 2026-09-07 (cleanup verification)
 
 ## Local environment verification (2026-08-30)
 
@@ -13,7 +13,8 @@ Last updated: 2026-08-30 (local env stabilization)
 | API typecheck | **PASS** |
 | API Jest | **18/18 PASS** |
 | `npm -w @lumen/api run db:verify` | **PASS** (requires real non-empty `DATABASE_URL`) |
-| Migration applicator parity | **PARTIAL** — live `schema_migrations` has `version` + 1 row; repo has 3 SQL files / applicator expects `id` |
+| Migration applicator parity | **PASS (2026-09-06)** — applicator records `version`; `20260830153000` applied; `db:verify` shows versioning cols |
+| Cleanup pass (2026-09-07) | **PASS** — shared/api/web typecheck; API Jest 21; web Jest 39; API + Next production builds; `db:verify` shows `memory_items` versioning cols |
 | Middleware→proxy warning | Non-blocking deprecation only |
 
 Do not claim live DB verification without a configured, reachable `DATABASE_URL`.

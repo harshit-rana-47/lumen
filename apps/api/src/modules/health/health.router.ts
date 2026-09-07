@@ -1,9 +1,8 @@
 import { Router, type Request, type Response } from "express";
-import pg from "pg";
-import { embedText } from "../../config/embeddings";
 import { env } from "../../config/env";
 import { groqClient } from "../../config/groq";
-import { supabaseAdmin } from "../../config/supabase";
+import { embedText } from "../../config/embeddings";
+import { checkPostgres, checkSupabaseAuth, isAuthReady } from "../../lib/readiness";
 
 const router = Router();
 
@@ -39,28 +38,38 @@ async function check(name: HealthName, fn: () => Promise<void>): Promise<[Health
   }
 }
 
-async function checkPostgres(): Promise<void> {
-  const client = new pg.Client({
-    connectionString: env.DATABASE_URL,
-    ssl: env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }
+router.get("/health/live", (_request: Request, response: Response) => {
+  response.json({
+    success: true,
+    data: {
+      status: "ok"
+    }
   });
-  await client.connect();
-  try {
-    await client.query("SELECT 1");
-  } finally {
-    await client.end();
+});
+
+router.get("/health/ready", (_request: Request, response: Response) => {
+  if (!isAuthReady()) {
+    response.status(503).json({
+      success: false,
+      data: {
+        status: "starting",
+        reason: "Authentication dependencies are still starting"
+      }
+    });
+    return;
   }
-}
+
+  response.json({
+    success: true,
+    data: {
+      status: "ok"
+    }
+  });
+});
 
 router.get("/health", async (_request: Request, response: Response) => {
   const results = await Promise.all([
-    check("supabase", async () => {
-      const { error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 });
-
-      if (error) {
-        throw error;
-      }
-    }),
+    check("supabase", checkSupabaseAuth),
     check("postgres", checkPostgres),
     check("groq", async () => {
       await groqClient.models.list();
@@ -68,19 +77,22 @@ router.get("/health", async (_request: Request, response: Response) => {
     check("embeddings", async () => {
       const embedding = await embedText("Lumen health check");
 
-      if (embedding.length !== 384) {
-        throw new Error(`Expected 384 embedding dimensions, received ${embedding.length}`);
+      if (embedding.length !== env.EMBEDDING_DIMENSIONS) {
+        throw new Error(
+          `Expected ${env.EMBEDDING_DIMENSIONS} embedding dimensions, received ${embedding.length}`
+        );
       }
     })
   ]);
 
   const checks = Object.fromEntries(results) as Record<HealthName, HealthResult>;
+  const authOk = checks.supabase.status === "ok" && checks.postgres.status === "ok";
   const ok = Object.values(checks).every((result) => result.status === "ok");
 
-  response.status(ok ? 200 : 503).json({
-    success: ok,
+  response.status(authOk ? 200 : 503).json({
+    success: authOk,
     data: {
-      status: ok ? "ok" : "degraded",
+      status: ok ? "ok" : authOk ? "degraded" : "starting",
       checks
     }
   });

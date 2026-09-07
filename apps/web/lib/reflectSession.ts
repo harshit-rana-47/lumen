@@ -15,3 +15,24 @@ export function entryIdFromReflectTitle(title: string | null | undefined): strin
   const id = title.slice(REFLECT_SESSION_TITLE_PREFIX.length).trim();
   return id || null;
 }
+
+type ReflectSessionLike = {
+  mode: string;
+  title: string | null;
+  updated_at: string;
+};
+
+/** Prefer the most recently updated session if duplicates exist. */
+export function pickReflectSession<T extends ReflectSessionLike>(sessions: T[], entryId: string): T | null {
+  const matches = sessions.filter(
+    (session) => session.mode === "reflection" && entryIdFromReflectTitle(session.title) === entryId
+  );
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  return [...matches].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )[0] ?? null;
+}

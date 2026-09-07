@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { forgetRemembered, getRemembered, READ_CACHE_TTL_MS, rememberInflight } from "@/lib/inflight";
+import { localDateKey } from "@/lib/date";
+import { buildHeatmap, type MoodTrendPoint } from "@/lib/insightsHeatmap";
+import { useHasApiSession } from "@/stores/authStore";
+
+export type { MoodTrendPoint };
 
 export type Insight = {
   id: string;
@@ -13,13 +19,6 @@ export type Insight = {
   isDismissed: boolean;
   seenAt: string | null;
   createdAt: string;
-};
-
-export type MoodTrendPoint = {
-  date: string;
-  mood: number | null;
-  energy: number | null;
-  anxiety: number | null;
 };
 
 export type InsightReport = {
@@ -40,61 +39,99 @@ type InsightListResponse = {
   total: number;
 };
 
-function buildHeatmap(points: MoodTrendPoint[]) {
-  const byDate = new Map(points.map((point) => [point.date, point]));
-  return Array.from({ length: 35 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (34 - index));
-    const key = date.toISOString().slice(0, 10);
-    const point = byDate.get(key);
-    return {
-      date: key,
-      value: point?.energy ?? point?.mood ?? null
-    };
-  });
-}
+export type UseInsightsOptions = {
+  /** Mood trend is only used by the Insights page charts. */
+  includeMoodTrend?: boolean;
+  /**
+   * The weekly report is an uncached Groq generation (~2-3s). Surfaces that do
+   * not render it must opt out rather than paying for it on mount.
+   */
+  includeReport?: boolean;
+};
 
-export function useInsights() {
-  const [insights, setInsights] = useState<Insight[]>([]);
+export function useInsights(options: UseInsightsOptions = {}) {
+  const { includeMoodTrend = true, includeReport = true } = options;
+  const canFetch = useHasApiSession();
+  const cachedInsights = getRemembered<Insight[]>("insights:list:20");
+  const [insights, setInsights] = useState<Insight[]>(cachedInsights ?? []);
   const [moodTrend, setMoodTrend] = useState<MoodTrendPoint[]>([]);
   const [report, setReport] = useState<InsightReport | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedInsights);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const hadCache = getRemembered<Insight[]>("insights:list:20") !== undefined;
+    if (!hadCache) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
-      const [insightsResponse, trendResponse, reportResponse] = await Promise.all([
-        api.get<ApiEnvelope<InsightListResponse>>("/insights", { params: { limit: 20 } }),
-        api.get<ApiEnvelope<MoodTrendPoint[]>>("/insights/mood-trend", { params: { days: 35 } }),
-        api.get<ApiEnvelope<InsightReport>>("/insights/report", { params: { period: "week" } })
+      const trendKey = `insights:mood-trend:30:${localDateKey()}`;
+      const [nextInsights, nextTrend, nextReport] = await Promise.all([
+        rememberInflight("insights:list:20", READ_CACHE_TTL_MS, async () => {
+          const response = await api.get<ApiEnvelope<InsightListResponse>>("/insights", {
+            params: { limit: 20 }
+          });
+          return response.data.data.insights;
+        }),
+        includeMoodTrend
+          ? rememberInflight(trendKey, READ_CACHE_TTL_MS, async () => {
+              const response = await api.get<ApiEnvelope<MoodTrendPoint[]>>("/insights/mood-trend", {
+                params: { days: 30, end: localDateKey() }
+              });
+              return response.data.data;
+            })
+          : Promise.resolve(null),
+        includeReport
+          ? rememberInflight("insights:report:week", READ_CACHE_TTL_MS, async () => {
+              const response = await api.get<ApiEnvelope<InsightReport>>("/insights/report", {
+                params: { period: "week" }
+              });
+              return response.data.data;
+            })
+          : Promise.resolve(null)
       ]);
 
-      setInsights(insightsResponse.data.data.insights);
-      setMoodTrend(trendResponse.data.data);
-      setReport(reportResponse.data.data);
+      setInsights(nextInsights);
+
+      if (nextTrend) {
+        setMoodTrend(nextTrend);
+      }
+
+      if (nextReport) {
+        setReport(nextReport);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load insights.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [includeMoodTrend, includeReport]);
 
   useEffect(() => {
+    if (!canFetch) {
+      setInsights([]);
+      setMoodTrend([]);
+      setReport(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     void load();
-  }, [load]);
+  }, [canFetch, load]);
 
   const activeInsights = useMemo(
     () => insights.filter((insight) => !insight.isDismissed),
     [insights]
   );
 
-  const heatmapCells = useMemo(() => buildHeatmap(moodTrend), [moodTrend]);
+  const heatmapCells = useMemo(() => buildHeatmap(moodTrend, localDateKey()), [moodTrend]);
 
   const dismissInsight = useCallback(async (id: string) => {
     await api.post(`/insights/${id}/dismiss`);
+    forgetRemembered("insights:list:20");
     setInsights((current) =>
       current.map((insight) => (insight.id === id ? { ...insight, isDismissed: true } : insight))
     );

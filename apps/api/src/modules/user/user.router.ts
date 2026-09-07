@@ -1,4 +1,5 @@
-import { Router, type NextFunction, type Request, type RequestHandler, type Response } from "express";
+import { Router, type Request, type Response } from "express";
+import { asyncHandler } from "../../lib/asyncHandler";
 import { authMiddleware } from "../../middleware/auth";
 import { exportLimiter } from "../../middleware/rateLimit";
 import { validate } from "../../middleware/validate";
@@ -11,14 +12,6 @@ import {
   type UpdateProfileInput
 } from "./user.schema";
 import { userService } from "./user.service";
-
-type AsyncHandler = (request: Request, response: Response, next: NextFunction) => Promise<void> | void;
-
-function asyncHandler(handler: AsyncHandler): RequestHandler {
-  return (request: Request, response: Response, next: NextFunction): void => {
-    Promise.resolve(handler(request, response, next)).catch(next);
-  };
-}
 
 function userId(request: Request): string {
   if (!request.user) {
@@ -78,7 +71,11 @@ userRouter.delete(
   "/account",
   validate({ body: deleteAccountSchema }),
   asyncHandler(async (request, response) => {
-    const data = await userService.deleteAccount(userId(request), request.body as DeleteAccountInput);
+    const data = await userService.deleteAccount(
+      userId(request),
+      request.body as DeleteAccountInput,
+      bearerToken(request)
+    );
     response.json({ success: true, data });
   })
 );

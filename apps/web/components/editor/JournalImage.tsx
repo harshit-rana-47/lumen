@@ -57,15 +57,11 @@ export function JournalImage({ mediaId, altText, caption, width, nodeKey }: Jour
         return;
       }
       setFigureActive(false);
-      clearSelection();
-      setSelected(false);
     }
 
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setFigureActive(false);
-        clearSelection();
-        setSelected(false);
       }
     }
 
@@ -89,7 +85,7 @@ export function JournalImage({ mediaId, altText, caption, width, nodeKey }: Jour
       document.removeEventListener("keydown", onKey);
       unregister();
     };
-  }, [clearSelection, editable, editor, setSelected]);
+  }, [editable, editor]);
 
   async function remove() {
     if (entryId) {
@@ -178,7 +174,6 @@ export function JournalImage({ mediaId, altText, caption, width, nodeKey }: Jour
                   "rounded-md px-2 py-1 text-[11px] text-page-ink-muted outline-none hover:bg-page-ink/8 focus-visible:shadow-focus",
                   width === size && "bg-page-ink/10 text-page-ink"
                 )}
-                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => updateNode({ width: size })}
               >
                 {size === 40 ? "Small" : size === 70 ? "Medium" : "Large"}
@@ -187,7 +182,6 @@ export function JournalImage({ mediaId, altText, caption, width, nodeKey }: Jour
             <button
               type="button"
               className="rounded-md px-2 py-1 text-[11px] text-danger outline-none hover:bg-page-ink/8 focus-visible:shadow-focus"
-              onMouseDown={(event) => event.preventDefault()}
               onClick={() => void remove()}
             >
               Remove

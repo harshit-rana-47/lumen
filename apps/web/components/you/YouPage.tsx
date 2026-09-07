@@ -63,7 +63,7 @@ export function YouPage() {
   const signOut = useAuthStore((state) => state.signOut);
   const { today } = useLocalDay();
   const { summary, loading: activityLoading } = useJournalActivity(today);
-  const { name, email, setName, setEmail, loading: profileLoading } = useProfile();
+  const { name, email, setName, setEmail } = useProfile();
   const { settings, categories, loading: settingsLoading, error: settingsError, updateSetting } =
     useMemorySettings();
 
@@ -178,12 +178,12 @@ export function YouPage() {
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/15 font-display text-2xl text-primary">
-                {profileLoading ? "·" : monogram}
+                {monogram}
               </div>
               <div className="min-w-0">
                 <p className="lumen-overline text-primary/90">You</p>
                 <h1 className="mt-1 truncate font-display text-3xl tracking-tight text-foreground sm:text-4xl">
-                  {profileLoading ? " " : displayName}
+                  {displayName}
                 </h1>
                 {email ? <p className="mt-1 truncate text-sm text-ink-muted">{email}</p> : null}
                 <p className="mt-3 text-sm leading-relaxed text-ink-muted">{journey}</p>
@@ -251,7 +251,7 @@ export function YouPage() {
           title="What Lumen may remember"
           description="When you save a page, Lumen can keep lasting facts for Chat and Reflect. Turn a category off to stop new extraction there."
         >
-          {settingsError ? (
+          {settingsError && !settingsLoading ? (
             <p className="text-sm text-danger" role="alert">
               {settingsError}
             </p>

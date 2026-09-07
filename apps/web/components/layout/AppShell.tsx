@@ -7,7 +7,8 @@ import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
 import { PageTransition } from "@/components/motion/PageTransition";
 import { ThinkingIndicator } from "@/components/motion";
-import { useAuthStore } from "@/stores/authStore";
+import { useApiReady } from "@/hooks/useApiReady";
+import { useAuthStore, hasApiSession } from "@/stores/authStore";
 import { cn } from "@/lib/cn";
 import "@/lib/motion/gsap";
 
@@ -25,6 +26,8 @@ export function AppShell({ children }: AppShellProps) {
   const initialized = useAuthStore((state) => state.initialized);
   const session = useAuthStore((state) => state.session);
   const restoreSession = useAuthStore((state) => state.restoreSession);
+  const apiReady = useApiReady();
+  const needsApi = hasApiSession(session);
   const isJournal = pathname.startsWith("/journal");
   const isChat = pathname.startsWith("/chat");
   const isImmersive = isJournal || isChat;
@@ -49,6 +52,26 @@ export function AppShell({ children }: AppShellProps) {
 
   if (!session) {
     return null;
+  }
+
+  if (needsApi && apiReady === "starting") {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-background">
+        <ThinkingIndicator label="Starting Lumen" />
+      </main>
+    );
+  }
+
+  if (needsApi && apiReady === "unreachable") {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6 text-center">
+        <p className="font-display text-2xl tracking-tight">Lumen API is not reachable</p>
+        <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+          The app is signed in, but the API did not become ready. Check that the API is running, then
+          refresh.
+        </p>
+      </main>
+    );
   }
 
   return (
