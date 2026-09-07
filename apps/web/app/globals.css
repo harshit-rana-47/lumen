@@ -12,6 +12,10 @@
   /* ——— Color (HSL channels) ——— */
   --paper: 38 32% 95%;
   --paper-elevated: 40 40% 98%;
+  --page: 38 34% 90%;
+  --page-elevated: 40 38% 94%;
+  --page-ink: 28 20% 14%;
+  --page-ink-muted: 28 12% 36%;
   --ink: 30 12% 12%;
   --ink-muted: 30 8% 38%;
   --ink-faint: 30 6% 55%;
@@ -206,6 +210,196 @@
   .lumen-paper {
     background: hsl(var(--paper-elevated));
     color: hsl(var(--ink));
+  }
+
+  .lumen-page {
+    background-color: hsl(var(--page));
+    color: hsl(var(--page-ink));
+    border-radius: var(--radius-lg);
+    box-shadow:
+      0 0 0 1px hsl(var(--ember) / 0.08),
+      var(--shadow-lift),
+      0 0 48px hsl(var(--ember) / 0.08);
+  }
+
+  .journal-leaf {
+    --page: 38 34% 90%;
+    --page-elevated: 40 38% 94%;
+    --page-ink: 28 20% 14%;
+    --page-ink-muted: 28 12% 36%;
+    position: relative;
+    isolation: isolate;
+    background-color: hsl(var(--page));
+    background-size: cover;
+    background-position: center;
+    color: hsl(var(--page-ink));
+    transition:
+      background-color var(--motion-interaction) var(--ease-standard),
+      color var(--motion-interaction) var(--ease-standard),
+      box-shadow var(--motion-interaction) var(--ease-standard);
+  }
+
+  .journal-leaf::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .journal-leaf > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .journal-leaf--parchment {
+    --page: 38 42% 88%;
+    --page-elevated: 40 38% 93%;
+    --page-ink: 28 22% 16%;
+    --page-ink-muted: 28 12% 36%;
+    box-shadow:
+      0 0 0 1px hsl(28 40% 42% / 0.12),
+      var(--shadow-lift),
+      0 0 48px hsl(var(--ember) / 0.1);
+  }
+
+  .journal-leaf--parchment::after {
+    opacity: 0.58;
+    background:
+      repeating-linear-gradient(-18deg, transparent 0 11px, hsl(28 32% 42% / 0.05) 11px 12px),
+      radial-gradient(ellipse 90% 55% at 50% -10%, hsl(38 55% 97% / 0.72), transparent 62%);
+  }
+
+  .journal-leaf--linen {
+    --page: 42 12% 94%;
+    --page-elevated: 40 10% 97%;
+    --page-ink: 32 10% 18%;
+    --page-ink-muted: 28 8% 40%;
+    box-shadow:
+      0 0 0 1px hsl(30 8% 50% / 0.14),
+      var(--shadow-lift),
+      0 0 36px hsl(30 10% 20% / 0.08);
+  }
+
+  .journal-leaf--linen::after {
+    opacity: 0.4;
+    background:
+      repeating-linear-gradient(0deg, hsl(30 8% 38% / 0.06) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(90deg, hsl(30 8% 38% / 0.045) 0 1px, transparent 1px 6px);
+  }
+
+  .journal-leaf--dusk {
+    --page: 26 18% 72%;
+    --page-elevated: 28 16% 78%;
+    --page-ink: 24 20% 14%;
+    --page-ink-muted: 24 12% 28%;
+    box-shadow:
+      0 0 0 1px hsl(24 20% 28% / 0.18),
+      var(--shadow-lift),
+      0 0 40px hsl(24 20% 10% / 0.2);
+  }
+
+  .journal-leaf--dusk::after {
+    opacity: 0.72;
+    background:
+      radial-gradient(ellipse 100% 80% at 50% 18%, hsl(32 22% 82% / 0.3), transparent 58%),
+      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(22 24% 18% / 0.28), transparent 55%);
+  }
+
+  .journal-leaf--night {
+    --page: 24 18% 11%;
+    --page-elevated: 26 14% 16%;
+    --page-ink: 40 28% 92%;
+    --page-ink-muted: 36 12% 62%;
+    color-scheme: dark;
+    box-shadow:
+      0 0 0 1px hsl(var(--ember) / 0.2),
+      var(--shadow-lift),
+      0 0 56px hsl(var(--ember) / 0.16);
+  }
+
+  .journal-leaf--night::after {
+    opacity: 0.88;
+    background:
+      radial-gradient(ellipse 70% 45% at 18% 0%, hsl(var(--ember) / 0.18), transparent 58%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(20 30% 4% / 0.58), transparent 62%);
+  }
+
+  .journal-leaf--photo {
+    background-repeat: no-repeat;
+  }
+
+  .journal-leaf--photo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, hsl(var(--page) / 0.72), hsl(var(--page) / 0.84));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .journal-leaf--photo::after {
+    opacity: 0.2;
+  }
+
+  .journal-editor .journal-h1 {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    margin: 0.75rem 0 0.5rem;
+  }
+
+  .journal-editor .journal-h2 {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-size: 1.35rem;
+    line-height: 1.25;
+    margin: 0.7rem 0 0.4rem;
+  }
+
+  .journal-editor .journal-h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0.6rem 0 0.35rem;
+  }
+
+  .journal-editor .journal-quote {
+    margin: 0.75rem 0;
+    border-left: 2px solid hsl(var(--lamp) / 0.4);
+    padding-left: 0.85rem;
+    color: hsl(var(--page-ink-muted));
+  }
+
+  .journal-editor .journal-ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin: 0.4rem 0;
+  }
+
+  .journal-editor .journal-ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+    margin: 0.4rem 0;
+  }
+
+  .journal-editor .journal-checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .journal-editor .journal-li-checked,
+  .journal-editor .journal-li-unchecked {
+    position: relative;
+    list-style: none;
+    margin: 0.25rem 0;
+    padding-left: 0.15rem;
+  }
+
+  .journal-editor .journal-link {
+    color: hsl(var(--page-ink));
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 
   .lumen-surface {

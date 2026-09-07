@@ -53,7 +53,7 @@ export default function JournalPage() {
         </Link>
         {latest ? (
           <Link
-            href={`/journal/${latest.id}`}
+            href={`/journal/${latest.id}?edit=1`}
             className="inline-flex h-12 items-center rounded-xl border border-border/70 bg-[hsl(var(--surface))] px-6 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary/35"
           >
             Continue last entry

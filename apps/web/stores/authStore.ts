@@ -56,3 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   }
 }));
+
+export function useHasApiSession(): boolean {
+  return useAuthStore((state) => Boolean(state.session));
+}

@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { JournalEditor } from "@/components/editor/JournalEditor";
+import { JournalReader } from "@/components/journal/JournalReader";
 import { useJournalWorkspace } from "@/components/journal/JournalWorkspace";
 import { ThinkingIndicator } from "@/components/motion";
 import { getJournalEntry, type JournalEntry } from "@/hooks/useJournal";
 import Link from "next/link";
 
-type JournalEntryPageProps = {
-  params: {
-    id: string;
-  };
-};
-
-export default function JournalEntryPage({ params }: JournalEntryPageProps) {
+function JournalEntryPage() {
   const { reload } = useJournalWorkspace();
+  const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const editing = searchParams.get("edit") === "1";
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!id) {
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -27,7 +31,7 @@ export default function JournalEntryPage({ params }: JournalEntryPageProps) {
 
     async function load() {
       try {
-        const nextEntry = await getJournalEntry(params.id);
+        const nextEntry = await getJournalEntry(id);
         if (!cancelled) {
           setEntry(nextEntry);
         }
@@ -47,9 +51,9 @@ export default function JournalEntryPage({ params }: JournalEntryPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [id]);
 
-  if (loading) {
+  if (!id || loading) {
     return (
       <div className="flex min-h-[60dvh] items-center justify-center">
         <ThinkingIndicator label="Opening this page" />
@@ -77,5 +81,23 @@ export default function JournalEntryPage({ params }: JournalEntryPageProps) {
     return null;
   }
 
-  return <JournalEditor key={entry.id} initialEntry={entry} onPersisted={() => void reload()} />;
+  if (editing) {
+    return <JournalEditor key={`${entry.id}-edit`} initialEntry={entry} onPersisted={() => void reload()} />;
+  }
+
+  return <JournalReader key={entry.id} entry={entry} onDeleted={() => void reload()} />;
+}
+
+export default function JournalEntryRoute() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[60dvh] items-center justify-center">
+          <ThinkingIndicator label="Opening this page" />
+        </div>
+      }
+    >
+      <JournalEntryPage />
+    </Suspense>
+  );
 }

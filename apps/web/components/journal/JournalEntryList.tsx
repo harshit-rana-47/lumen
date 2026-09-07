@@ -86,7 +86,7 @@ export function JournalEntryList({
             return (
               <li key={entry.id}>
                 <Link
-                  href={`/journal/${entry.id}`}
+                  href={`/journal/${entry.id}?edit=1`}
                   {...(onSelect ? { onClick: onSelect } : {})}
                   aria-current={active ? "page" : undefined}
                   className={cn(

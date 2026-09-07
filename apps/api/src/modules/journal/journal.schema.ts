@@ -55,6 +55,11 @@ export const createJournalSchema = z.object({
 
 export const journalIdParamsSchema = uuidSchema;
 
+export const journalMediaParamsSchema = z.object({
+  id: z.string().uuid(),
+  mediaId: z.string().uuid()
+});
+
 export const updateJournalSchema = z
   .object({
     title: z.string().trim().max(240).nullable().optional(),

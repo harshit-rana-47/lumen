@@ -8,10 +8,10 @@ type MoodSliderProps = {
 
 export function MoodSlider({ label, value, onChange }: MoodSliderProps) {
   return (
-    <label className="block text-sm font-medium">
+    <label className="block text-sm font-medium text-page-ink/80">
       <span className="flex items-center justify-between">
         {label}
-        <span className="text-slate-500">{value}</span>
+        <span className="text-page-ink-muted">{value}</span>
       </span>
       <input
         className="mt-2 w-full accent-[hsl(var(--primary))]"

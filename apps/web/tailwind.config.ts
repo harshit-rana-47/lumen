@@ -29,7 +29,12 @@ const config: Config = {
         mist: "hsl(var(--mist))",
         line: "hsl(var(--line))",
         danger: "hsl(var(--danger))",
-        "paper-elevated": "hsl(var(--paper-elevated))"
+        "paper-elevated": "hsl(var(--paper-elevated))",
+        page: "hsl(var(--page))",
+        "page-elevated": "hsl(var(--page-elevated))",
+        "page-ink": "hsl(var(--page-ink))",
+        "page-ink-muted": "hsl(var(--page-ink-muted))",
+        "primary-foreground": "hsl(0 0% 100%)"
       },
       fontFamily: {
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],

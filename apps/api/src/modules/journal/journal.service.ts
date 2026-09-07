@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { embedText } from "../../config/embeddings";
-import { encrypt } from "../../lib/encrypt";
+import { decrypt, encrypt } from "../../lib/encrypt";
+import { journalPlainText } from "../../lib/journalDocument";
 import { writeAuditLog } from "../../lib/audit";
 import { enqueueEmbedJob } from "../../lib/queue";
 import { getUserDEK } from "../../lib/userDEK";
@@ -10,6 +11,7 @@ import {
   decryptRequiredText,
   encryptOptionalText,
   encryptRequiredText,
+  parseEncryptedPayload,
   serializeEncryptedPayload
 } from "./journal.encrypt";
 import type {
@@ -77,8 +79,7 @@ const JOURNAL_FULL_SELECT = `${JOURNAL_LIST_SELECT},body_encrypted,iv,auth_tag`;
 const MEDIA_BUCKET = "journal-media";
 
 function wordCount(body: string): number {
-  const words = body.trim().split(/\s+/).filter(Boolean);
-  return words.length;
+  return journalPlainText(body).trim().split(/\s+/).filter(Boolean).length;
 }
 
 function readingTimeSec(words: number): number {
@@ -435,6 +436,101 @@ export class JournalService {
       mediaId: media.id,
       signedUrl: signedUpload.signedUrl
     };
+  }
+
+  async listMedia(userId: string, entryId: string) {
+    await this.get(userId, entryId);
+    const dek = await getUserDEK(userId);
+    const { data, error } = await supabaseAdmin
+      .from("media_attachments")
+      .select("id,media_type,mime_type,size_bytes,s3_key,created_at")
+      .eq("user_id", userId)
+      .eq("entry_id", entryId)
+      .order("created_at", { ascending: true })
+      .returns<
+        Array<{
+          id: string;
+          media_type: string;
+          mime_type: string | null;
+          size_bytes: number | null;
+          s3_key: string;
+          created_at: string;
+        }>
+      >();
+
+    if (error) {
+      throw error;
+    }
+
+    const items = (
+      await Promise.all(
+        (data ?? []).map(async (row) => {
+          try {
+            const storagePath = decrypt(parseEncryptedPayload(row.s3_key), dek);
+            const { data: signed, error: signedError } = await supabaseAdmin.storage
+              .from(MEDIA_BUCKET)
+              .createSignedUrl(storagePath, 60 * 60);
+
+            if (signedError || !signed?.signedUrl) {
+              return null;
+            }
+
+            return {
+              id: row.id,
+              mediaType: row.media_type,
+              mimeType: row.mime_type,
+              sizeBytes: row.size_bytes,
+              createdAt: row.created_at,
+              url: signed.signedUrl
+            };
+          } catch {
+            return null;
+          }
+        })
+      )
+    ).filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return { items };
+  }
+
+  async deleteMedia(userId: string, entryId: string, mediaId: string): Promise<{ id: string; deleted: true }> {
+    await this.get(userId, entryId);
+    const dek = await getUserDEK(userId);
+    const { data, error } = await supabaseAdmin
+      .from("media_attachments")
+      .select("id,s3_key")
+      .eq("user_id", userId)
+      .eq("entry_id", entryId)
+      .eq("id", mediaId)
+      .maybeSingle<{ id: string; s3_key: string }>();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      throw Object.assign(new Error("Media not found"), { status: 404 });
+    }
+
+    try {
+      const storagePath = decrypt(parseEncryptedPayload(data.s3_key), dek);
+      await supabaseAdmin.storage.from(MEDIA_BUCKET).remove([storagePath]);
+    } catch {
+      // Drop the row even if the object is already gone.
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("media_attachments")
+      .delete()
+      .eq("user_id", userId)
+      .eq("entry_id", entryId)
+      .eq("id", mediaId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    return { id: mediaId, deleted: true };
   }
 }
 

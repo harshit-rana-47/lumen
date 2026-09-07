@@ -5,6 +5,7 @@ import {
   calendarJournalQuerySchema,
   createJournalSchema,
   journalIdParamsSchema,
+  journalMediaParamsSchema,
   listJournalQuerySchema,
   mediaJournalSchema,
   searchJournalQuerySchema,
@@ -164,6 +165,37 @@ journalRouter.post(
     );
 
     response.status(201).json({
+      success: true,
+      data
+    });
+  })
+);
+
+journalRouter.get(
+  "/:id/media",
+  validate({ params: journalIdParamsSchema }),
+  asyncHandler(async (request: Request, response: Response) => {
+    const data = await journalService.listMedia(currentUserId(request), paramId(request));
+
+    response.json({
+      success: true,
+      data
+    });
+  })
+);
+
+journalRouter.delete(
+  "/:id/media/:mediaId",
+  validate({ params: journalMediaParamsSchema }),
+  asyncHandler(async (request: Request, response: Response) => {
+    const mediaId = request.params.mediaId;
+    if (!mediaId) {
+      throw new Error("Media id is required");
+    }
+
+    const data = await journalService.deleteMedia(currentUserId(request), paramId(request), mediaId);
+
+    response.json({
       success: true,
       data
     });

@@ -101,6 +101,17 @@ export async function getJournalEntry(id: string): Promise<JournalEntry> {
   return response.data.data;
 }
 
+export async function getEntriesForDate(date: string): Promise<JournalEntrySummary[]> {
+  const response = await api.get<ApiEnvelope<JournalListData>>("/journal", {
+    params: {
+      limit: 100,
+      startDate: date,
+      endDate: date
+    }
+  });
+  return response.data.data.entries;
+}
+
 export async function createJournalEntry(draft: JournalDraft): Promise<JournalEntry> {
   const response = await api.post<ApiEnvelope<JournalEntry>>("/journal", {
     ...draft,
@@ -118,4 +129,56 @@ export async function updateJournalEntry(id: string, draft: Partial<JournalDraft
 export async function deleteJournalEntry(id: string): Promise<{ id: string; deleted: true }> {
   const response = await api.delete<ApiEnvelope<{ id: string; deleted: true }>>(`/journal/${id}`);
   return response.data.data;
+}
+
+export type JournalMediaItem = {
+  id: string;
+  mediaType: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
+  url: string;
+};
+
+export async function listJournalMedia(entryId: string): Promise<JournalMediaItem[]> {
+  const response = await api.get<ApiEnvelope<{ items: JournalMediaItem[] }>>(`/journal/${entryId}/media`);
+  return response.data.data.items;
+}
+
+export async function createJournalMediaUpload(
+  entryId: string,
+  file: File
+): Promise<{ mediaId: string; signedUrl: string }> {
+  const mediaType = file.type.startsWith("image/")
+    ? "image"
+    : file.type.startsWith("audio/")
+      ? "audio"
+      : "video";
+  const response = await api.post<ApiEnvelope<{ mediaId: string; signedUrl: string }>>(
+    `/journal/${entryId}/media`,
+    {
+      fileName: file.name,
+      mediaType,
+      mimeType: file.type || "application/octet-stream",
+      sizeBytes: file.size
+    }
+  );
+  return response.data.data;
+}
+
+export async function uploadJournalMediaFile(signedUrl: string, file: File): Promise<void> {
+  const response = await fetch(signedUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream"
+    },
+    body: file
+  });
+  if (!response.ok) {
+    throw new Error("Unable to upload the picture.");
+  }
+}
+
+export async function deleteJournalMedia(entryId: string, mediaId: string): Promise<void> {
+  await api.delete(`/journal/${entryId}/media/${mediaId}`);
 }
