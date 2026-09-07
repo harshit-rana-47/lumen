@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm -w @lumen/web run build",
-  "installCommand": "npm ci",
-  "outputDirectory": "apps/web/.next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "installCommand": "npm ci --workspace=@lumen/web --workspace=@lumen/shared --workspace=@lumen/eslint-config --workspace=@lumen/tsconfig --include-workspace-root",
+  "buildCommand": "npx turbo run build --filter=@lumen/web"
 }

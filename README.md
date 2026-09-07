@@ -164,6 +164,39 @@ Canonical project docs are in [`DOCS/`](DOCS/). Start with [`DOCS/AGENT_CONTEXT.
 
 ---
 
+## Deploying the web app on Vercel
+
+Vercel should host **`apps/web` only**. The Express API (`apps/api`), pg-boss workers, and local MiniLM embeddings cannot run on Vercel.
+
+### Project settings
+
+| Setting | Value |
+| --- | --- |
+| **Root Directory** | `apps/web` (include files outside the root so `packages/` is available) |
+| **Framework** | Next.js |
+| **Node.js** | `20.x` |
+| **Install command** | from `apps/web/vercel.json` (workspace-filtered `npm ci`) |
+| **Build command** | `cd ../.. && npx turbo run build --filter=@lumen/web` |
+| **Output directory** | leave default (`.next`) |
+
+If Root Directory is left as the repository root, use the root `vercel.json` install/build commands. Do **not** set Output Directory to `apps/web/.next` while using the Next.js preset from the repo root — Vercel then looks for `next.config` and `.next` in the wrong place.
+
+Do not run root `npm run build` / `turbo build` on Vercel. That compiles the API as well and `npm ci` without workspace filters installs `@xenova/transformers` (ONNX/sharp native binaries), which is what makes the install look stuck.
+
+### Environment variables
+
+Set these on the Vercel project (Production and Preview):
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `NEXT_PUBLIC_API_URL` | Public Express API origin, including `/api/v1` (not `localhost`) |
+
+The API, `DATABASE_URL`, `MASTER_ENCRYPTION_KEY`, `GROQ_API_KEY`, and the service role key belong on the **API host**, not on Vercel.
+
+---
+
 ## License and data
 
 This repository is the Lumen application source. User journals are **not** stored in git. Treat production keys, `MASTER_ENCRYPTION_KEY`, and database URLs as secrets.

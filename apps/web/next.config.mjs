@@ -19,9 +19,14 @@ const { combinedEnv } = loadEnvConfig(
 );
 
 const publicEnv = {
-  NEXT_PUBLIC_SUPABASE_URL: combinedEnv.NEXT_PUBLIC_SUPABASE_URL ?? "",
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: combinedEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  NEXT_PUBLIC_API_URL: combinedEnv.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"
+  NEXT_PUBLIC_SUPABASE_URL:
+    process.env.NEXT_PUBLIC_SUPABASE_URL || combinedEnv.NEXT_PUBLIC_SUPABASE_URL || "",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY:
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || combinedEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+  NEXT_PUBLIC_API_URL:
+    process.env.NEXT_PUBLIC_API_URL ||
+    combinedEnv.NEXT_PUBLIC_API_URL ||
+    (process.env.VERCEL ? "" : "http://localhost:4000/api/v1")
 };
 
 /** @type {import('next').NextConfig} */
