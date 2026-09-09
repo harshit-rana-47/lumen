@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import ws from "ws";
 import { env } from "./env";
 
 /**
@@ -11,12 +12,20 @@ import { env } from "./env";
  * - createUserScopedClient(jwt): authenticated PostgREST client subject to RLS.
  */
 
+/** Node < 22 has no native WebSocket; supabase-js realtime requires an explicit transport. */
+const nodeRealtime = {
+  realtime: {
+    transport: ws as never
+  }
+};
+
 // SERVER ONLY: service role bypasses RLS.
 export const supabaseAdmin = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
-  }
+  },
+  ...nodeRealtime
 });
 
 /** Password grant / refresh — must use the anon key, not the service role. */
@@ -24,7 +33,8 @@ export const supabaseAuth = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY
   auth: {
     autoRefreshToken: false,
     persistSession: false
-  }
+  },
+  ...nodeRealtime
 });
 
 export function createUserScopedClient(accessToken: string): SupabaseClient {
@@ -37,7 +47,8 @@ export function createUserScopedClient(accessToken: string): SupabaseClient {
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    }
+    },
+    ...nodeRealtime
   });
 }
 

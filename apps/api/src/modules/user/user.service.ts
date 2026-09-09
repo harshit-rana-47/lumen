@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 import { env } from "../../config/env";
 import { supabaseAdmin } from "../../config/supabase";
 import { writeAuditLog } from "../../lib/audit";
@@ -77,7 +78,8 @@ export class UserService {
     }
 
     const verifier = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: false, persistSession: false }
+      auth: { autoRefreshToken: false, persistSession: false },
+      realtime: { transport: ws as never }
     });
 
     const { error: verifyError } = await verifier.auth.signInWithPassword({
