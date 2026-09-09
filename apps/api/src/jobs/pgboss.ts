@@ -1,5 +1,6 @@
 import PgBoss from "pg-boss";
 import { env } from "../config/env";
+import { getActiveDatabaseUrl, resolveReachableDatabaseUrl } from "../config/databaseUrl";
 import { logger } from "../config/logger";
 
 /**
@@ -39,9 +40,11 @@ export async function getPgBoss(): Promise<PgBoss> {
   }
 
   starting = (async () => {
+    const connectionString = await resolveReachableDatabaseUrl(env.DATABASE_URL);
     const instance = new PgBoss({
-      connectionString: env.DATABASE_URL,
-      application_name: "lumen-pg-boss"
+      connectionString: getActiveDatabaseUrl(connectionString),
+      application_name: "lumen-pg-boss",
+      ssl: connectionString.includes("localhost") ? undefined : { rejectUnauthorized: false }
     });
 
     instance.on("error", (error: Error) => {

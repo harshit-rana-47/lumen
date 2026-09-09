@@ -1,8 +1,11 @@
-import pg from "pg";
 import { env } from "../config/env";
 import { groqClient } from "../config/groq";
 import { embedText } from "../config/embeddings";
 import { supabaseAdmin } from "../config/supabase";
+import {
+  explainDatabaseConnectivityFailure,
+  withPostgresClient
+} from "../config/databaseUrl";
 import { getPgBoss } from "../jobs/pgboss";
 import { logger } from "../config/logger";
 
@@ -19,15 +22,12 @@ export function isAuthReady(): boolean {
 }
 
 export async function checkPostgres(): Promise<void> {
-  const client = new pg.Client({
-    connectionString: env.DATABASE_URL,
-    ssl: env.DATABASE_URL.includes("localhost") ? undefined : { rejectUnauthorized: false }
-  });
-  await client.connect();
   try {
-    await client.query("SELECT 1");
-  } finally {
-    await client.end();
+    await withPostgresClient(env.DATABASE_URL, async (client) => {
+      await client.query("SELECT 1");
+    });
+  } catch (error: unknown) {
+    throw explainDatabaseConnectivityFailure(error);
   }
 }
 
