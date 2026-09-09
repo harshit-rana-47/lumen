@@ -37,6 +37,11 @@ function normalizeSupabaseUrl(url: string): string {
   return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 }
 
+/** Render injects RENDER_EXTERNAL_URL; use it when API_URL is not set explicitly. */
+if (!process.env.API_URL?.trim() && process.env.RENDER_EXTERNAL_URL?.trim()) {
+  process.env.API_URL = process.env.RENDER_EXTERNAL_URL.trim().replace(/\/$/, "");
+}
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
   PORT: z.coerce.number().int().positive(),
