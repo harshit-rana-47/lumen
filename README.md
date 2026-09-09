@@ -183,6 +183,16 @@ If Root Directory is left as the repository root, use the root `vercel.json` ins
 
 Do not run root `npm run build` / `turbo build` on Vercel. That compiles the API as well and `npm ci` without workspace filters installs `@xenova/transformers` (ONNX/sharp native binaries), which is what makes the install look stuck.
 
+### API on Render
+
+Host Express (`apps/api`) separately. Build command:
+
+```bash
+npm ci --include=dev && npm -w @lumen/api run build
+```
+
+Start command: `npm -w @lumen/api run start`. Then set Vercel `NEXT_PUBLIC_API_URL` to `https://YOUR-SERVICE.onrender.com/api/v1`.
+
 ### Environment variables
 
 Set these on the Vercel project (Production and Preview):
