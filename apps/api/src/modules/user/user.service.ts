@@ -17,6 +17,11 @@ type UserRow = {
 
 export { USER_STORAGE_BUCKETS };
 
+export function userExportFileName(exportedAt: string): string {
+  const day = exportedAt.slice(0, 10) || "export";
+  return `lumen-export-${day}.json`;
+}
+
 /** Owned rows that must be removed on account deletion. audit_logs are retained. */
 export const USER_DATA_TABLES = [
   "chat_messages",
@@ -114,7 +119,7 @@ export class UserService {
       supabaseAdmin.from("chat_sessions").select("id,mode,created_at,updated_at").eq("user_id", userId)
     ]);
 
-    const exportPayload = {
+    const payload = {
       exportedAt: new Date().toISOString(),
       userId,
       journals: journals ?? [],
@@ -124,30 +129,47 @@ export class UserService {
         "Encrypted content is omitted from this metadata export. Full decrypted export will ship with Storage-backed ZIP in a later pass."
     };
 
-    const blob = Buffer.from(JSON.stringify(exportPayload, null, 2), "utf8");
+    const blob = Buffer.from(JSON.stringify(payload, null, 2), "utf8");
     const path = `${userId}/exports/lumen-export-${Date.now()}.json`;
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("user-exports")
-      .upload(path, blob, { contentType: "application/json", upsert: true });
+    const fileName = userExportFileName(payload.exportedAt);
 
-    if (uploadError) {
-      await writeAuditLog({ actorId: userId, action: "user.export", metadata: { fallback: true } });
-      return {
-        signedUrl: `data:application/json;base64,${blob.toString("base64")}`,
-        fallback: true
-      };
+    try {
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("user-exports")
+        .upload(path, blob, { contentType: "application/json", upsert: true });
+
+      if (uploadError) {
+        await writeAuditLog({ actorId: userId, action: "user.export", metadata: { fallback: true } });
+        return { payload, fileName, signedUrl: null, fallback: true };
+      }
+
+      const { data: signed, error: signedError } = await supabaseAdmin.storage
+        .from("user-exports")
+        .createSignedUrl(path, 60 * 15);
+
+      // Never fail the copy on Storage 429/errors — the metadata payload is already in-hand.
+      if (signedError || !signed?.signedUrl) {
+        await writeAuditLog({
+          actorId: userId,
+          action: "user.export",
+          metadata: { fallback: true, signedUrlError: signedError?.message ?? true }
+        });
+        return { payload, fileName, signedUrl: null, fallback: true };
+      }
+
+      await writeAuditLog({ actorId: userId, action: "user.export" });
+      return { payload, fileName, signedUrl: signed.signedUrl, fallback: false };
+    } catch (caught) {
+      await writeAuditLog({
+        actorId: userId,
+        action: "user.export",
+        metadata: {
+          fallback: true,
+          storageError: caught instanceof Error ? caught.message : true
+        }
+      });
+      return { payload, fileName, signedUrl: null, fallback: true };
     }
-
-    const { data: signed, error: signedError } = await supabaseAdmin.storage
-      .from("user-exports")
-      .createSignedUrl(path, 60 * 15);
-
-    if (signedError || !signed?.signedUrl) {
-      throw signedError ?? new Error("Unable to create export signed URL");
-    }
-
-    await writeAuditLog({ actorId: userId, action: "user.export" });
-    return { signedUrl: signed.signedUrl, fallback: false };
   }
 
   /**

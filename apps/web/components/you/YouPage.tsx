@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState, type ReactNode } from "react";
+import { FormEvent, useMemo, useRef, useState, type ReactNode } from "react";
+import axios from "axios";
 import { Download, LogOut } from "lucide-react";
 import { FadeReveal } from "@/components/motion/FadeReveal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -17,6 +18,8 @@ import { cn } from "@/lib/cn";
 import {
   ACCOUNT_DELETE_CONFIRMATION,
   MEMORY_CATEGORY_COPY,
+  serializeUserExport,
+  userExportFileName,
   youDisplayName,
   youJourneyLine,
   youMonogram
@@ -27,6 +30,38 @@ type ApiEnvelope<T> = {
   success: boolean;
   data: T;
 };
+
+type ExportResponse = {
+  payload?: unknown;
+  fileName?: string;
+  signedUrl?: string | null;
+  fallback?: boolean;
+};
+
+function describeApiError(caught: unknown, fallback: string): string {
+  if (axios.isAxiosError(caught)) {
+    const body = caught.response?.data as { error?: unknown } | undefined;
+    if (typeof body?.error === "string" && body.error.trim()) {
+      return body.error;
+    }
+  }
+  if (caught instanceof Error && caught.message.trim()) {
+    return caught.message;
+  }
+  return fallback;
+}
+
+function downloadJsonFile(fileName: string, payload: unknown): void {
+  const blob = new Blob([serializeUserExport(payload)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+}
 
 const fieldClass =
   "mt-2 h-11 w-full rounded-xl border border-border/70 bg-background/50 px-3 text-sm text-foreground outline-none placeholder:text-ink-faint focus:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/25";
@@ -70,6 +105,7 @@ export function YouPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
+  const exportInFlight = useRef(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -125,17 +161,30 @@ export function YouPage() {
   }
 
   async function exportData() {
+    if (exportInFlight.current) {
+      return;
+    }
+    exportInFlight.current = true;
     setNotice(null);
     setExportBusy(true);
     try {
-      const response = await api.post<ApiEnvelope<{ signedUrl: string }>>("/user/export");
-      window.location.href = response.data.data.signedUrl;
+      const response = await api.post<ApiEnvelope<ExportResponse>>("/user/export");
+      const result = response.data.data;
+      if (!result?.payload) {
+        throw new Error("Unable to export your data.");
+      }
+      downloadJsonFile(
+        result.fileName?.trim() || userExportFileName(),
+        result.payload
+      );
+      setNotice({ tone: "ok", text: "Your data copy is downloading." });
     } catch (caught) {
       setNotice({
         tone: "error",
-        text: caught instanceof Error ? caught.message : "Unable to export your data."
+        text: describeApiError(caught, "Unable to export your data.")
       });
     } finally {
+      exportInFlight.current = false;
       setExportBusy(false);
     }
   }

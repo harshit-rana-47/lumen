@@ -41,6 +41,19 @@ export function youJourneyLine(summary: ActivitySummary, loading: boolean): stri
   return `${summary.totalEntries} pages across ${summary.activeDays} days.`;
 }
 
+export function userExportFileName(exportedAt?: string, now: Date = new Date()): string {
+  const day = exportedAt?.slice(0, 10);
+  if (day && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    return `lumen-export-${day}.json`;
+  }
+  const isoDay = now.toISOString().slice(0, 10);
+  return `lumen-export-${isoDay}.json`;
+}
+
+export function serializeUserExport(payload: unknown): string {
+  return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
 export const MEMORY_CATEGORY_COPY: Record<
   "identity" | "relationship" | "goal" | "life_event" | "emotional" | "preference" | "habit",
   { label: string; detail: string }

@@ -1,4 +1,4 @@
-import { USER_DATA_TABLES, USER_STORAGE_BUCKETS } from "./user.service";
+import { USER_DATA_TABLES, USER_STORAGE_BUCKETS, userExportFileName } from "./user.service";
 import { jobNames } from "../../jobs/pgboss";
 
 describe("account deletion inventory", () => {
@@ -20,6 +20,10 @@ describe("account deletion inventory", () => {
 
   it("purges journal media and export objects from Storage", () => {
     expect(USER_STORAGE_BUCKETS).toEqual(["journal-media", "user-exports"]);
+  });
+
+  it("names a metadata copy by export day", () => {
+    expect(userExportFileName("2026-09-13T12:00:00.000Z")).toBe("lumen-export-2026-09-13.json");
   });
 
   it("does not delete audit_logs (forensic retention)", () => {

@@ -1,4 +1,4 @@
-import { youDisplayName, youJourneyLine, youMonogram } from "./youView";
+import { userExportFileName, serializeUserExport, youDisplayName, youJourneyLine, youMonogram } from "./youView";
 import type { ActivitySummary } from "./activity";
 
 function summary(overrides: Partial<ActivitySummary> = {}): ActivitySummary {
@@ -27,5 +27,18 @@ describe("you identity copy", () => {
     expect(youJourneyLine(summary({ totalEntries: 14, activeDays: 9 }), false)).toBe(
       "14 pages across 9 days."
     );
+  });
+});
+
+describe("user data export copy", () => {
+  it("names the file from the export day", () => {
+    expect(userExportFileName("2026-09-13T12:00:00.000Z")).toBe("lumen-export-2026-09-13.json");
+    expect(userExportFileName(undefined, new Date("2026-01-02T00:00:00.000Z"))).toBe(
+      "lumen-export-2026-01-02.json"
+    );
+  });
+
+  it("serializes metadata as pretty JSON", () => {
+    expect(serializeUserExport({ journals: [] })).toBe('{\n  "journals": []\n}\n');
   });
 });
