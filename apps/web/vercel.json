@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "cd ../.. && npm ci --workspace=@lumen/web --workspace=@lumen/shared --workspace=@lumen/eslint-config --workspace=@lumen/tsconfig --include-workspace-root",
-  "buildCommand": "cd ../.. && npx turbo run build --filter=@lumen/web"
+  "buildCommand": "cd ../.. && npx turbo run build --filter=@lumen/web --env-mode=loose"
 }

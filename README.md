@@ -195,7 +195,7 @@ Start command: `npm -w @lumen/api run start`. Then set Vercel `NEXT_PUBLIC_API_U
 
 ### Environment variables
 
-Set these on the Vercel project for **Production and Preview**, and mark them as available to **Build** (Next inlines `NEXT_PUBLIC_*` at build time):
+Set these on the Vercel project for **Production and Preview**, available to **Build and Runtime**. Do **not** mark `NEXT_PUBLIC_*` as Sensitive — Vercel then hides them from `next build`, so the client bundle cannot be inlined. The anon key is already public.
 
 | Variable | Purpose |
 | --- | --- |
