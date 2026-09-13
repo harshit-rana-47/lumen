@@ -5,10 +5,13 @@
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_API_URL"
   ],
+  "globalPassThroughEnv": ["VERCEL", "VERCEL_ENV", "VERCEL_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**", "!.next/cache/**"]
+      "outputs": [".next/**", "dist/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_API_URL"],
+      "passThroughEnv": ["VERCEL", "VERCEL_ENV", "VERCEL_URL"]
     },
     "dev": {
       "cache": false,

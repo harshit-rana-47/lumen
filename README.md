@@ -195,7 +195,7 @@ Start command: `npm -w @lumen/api run start`. Then set Vercel `NEXT_PUBLIC_API_U
 
 ### Environment variables
 
-Set these on the Vercel project (Production and Preview):
+Set these on the Vercel project for **Production and Preview**, and mark them as available to **Build** (Next inlines `NEXT_PUBLIC_*` at build time):
 
 | Variable | Purpose |
 | --- | --- |
@@ -203,7 +203,7 @@ Set these on the Vercel project (Production and Preview):
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `NEXT_PUBLIC_API_URL` | Public Express API origin, including `/api/v1` (not `localhost`) |
 
-The API, `DATABASE_URL`, `MASTER_ENCRYPTION_KEY`, `GROQ_API_KEY`, and the service role key belong on the **API host**, not on Vercel.
+The API, `DATABASE_URL`, `MASTER_ENCRYPTION_KEY`, `GROQ_API_KEY`, and the service role key belong on the **API host**, not on Vercel. Never add `SUPABASE_SERVICE_ROLE_KEY` to the web project.
 
 ---
 

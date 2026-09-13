@@ -1,18 +1,55 @@
 "use client";
 
-import { createClient, type Session } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type Session } from "@supabase/supabase-js";
 import { invalidateApiAuthCache } from "./apiAuthCache";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Set them in the monorepo root .env (loaded via next.config.mjs)."
-  );
+function readBrowserSupabaseConfig(): { url: string; anonKey: string } {
+  return {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "",
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? ""
+  };
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function createBrowserSupabase(): SupabaseClient {
+  const { url, anonKey } = readBrowserSupabaseConfig();
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Set them in the monorepo root .env for local work, and in the Vercel project Environment Variables for Production and Preview builds."
+    );
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error("NEXT_PUBLIC_SUPABASE_URL must be a valid URL.");
+    }
+    if (parsed.protocol !== "https:") {
+      throw new Error("NEXT_PUBLIC_SUPABASE_URL must use HTTPS in production.");
+    }
+  }
+
+  return createClient(url, anonKey);
+}
+
+let browserClient: SupabaseClient | undefined;
+
+export function getSupabase(): SupabaseClient {
+  browserClient ??= createBrowserSupabase();
+  return browserClient;
+}
+
+/**
+ * Lazy client so importing this module during `next build` prerender does not
+ * throw before Next inlines NEXT_PUBLIC_* values.
+ */
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, property, receiver) {
+    const value = Reflect.get(getSupabase(), property, receiver);
+    return typeof value === "function" ? value.bind(getSupabase()) : value;
+  }
+});
 
 const ACCESS_COOKIE = "lumen-access-token";
 const REFRESH_COOKIE = "lumen-refresh-token";
