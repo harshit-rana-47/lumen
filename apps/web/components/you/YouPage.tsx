@@ -15,11 +15,10 @@ import { useProfile } from "@/hooks/useProfile";
 import type { MemoryCategory } from "@/hooks/useMemory";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { downloadUserExportFile } from "@/lib/downloadFile";
 import {
   ACCOUNT_DELETE_CONFIRMATION,
   MEMORY_CATEGORY_COPY,
-  serializeUserExport,
-  userExportFileName,
   youDisplayName,
   youJourneyLine,
   youMonogram
@@ -49,18 +48,6 @@ function describeApiError(caught: unknown, fallback: string): string {
     return caught.message;
   }
   return fallback;
-}
-
-function downloadJsonFile(fileName: string, payload: unknown): void {
-  const blob = new Blob([serializeUserExport(payload)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
 
 const fieldClass =
@@ -173,10 +160,7 @@ export function YouPage() {
       if (!result?.payload) {
         throw new Error("Unable to export your data.");
       }
-      downloadJsonFile(
-        result.fileName?.trim() || userExportFileName(),
-        result.payload
-      );
+      downloadUserExportFile(result.fileName, result.payload);
       setNotice({ tone: "ok", text: "Your data copy is downloading." });
     } catch (caught) {
       setNotice({
@@ -379,10 +363,20 @@ export function YouPage() {
           title="Take a copy"
           description="Download a metadata copy of your journals, memories, and chats. Encrypted page bodies are not included yet."
         >
-          <button type="button" onClick={() => void exportData()} disabled={exportBusy} className={ghostButtonClass}>
-            <Download className="h-4 w-4" aria-hidden />
-            Export data
-          </button>
+          <div className="flex flex-col items-start gap-3">
+            <button type="button" onClick={() => void exportData()} disabled={exportBusy} className={ghostButtonClass}>
+              <Download className="h-4 w-4" aria-hidden />
+              {exportBusy ? "Preparing copy…" : "Export data"}
+            </button>
+            {notice ? (
+              <p
+                className={cn("text-sm", notice.tone === "error" ? "text-danger" : "text-ink-muted")}
+                role={notice.tone === "error" ? "alert" : "status"}
+              >
+                {notice.text}
+              </p>
+            ) : null}
+          </div>
         </Section>
       </FadeReveal>
 
