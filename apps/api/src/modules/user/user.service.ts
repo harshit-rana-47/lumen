@@ -129,47 +129,10 @@ export class UserService {
         "Encrypted content is omitted from this metadata export. Full decrypted export will ship with Storage-backed ZIP in a later pass."
     };
 
-    const blob = Buffer.from(JSON.stringify(payload, null, 2), "utf8");
-    const path = `${userId}/exports/lumen-export-${Date.now()}.json`;
     const fileName = userExportFileName(payload.exportedAt);
-
-    try {
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("user-exports")
-        .upload(path, blob, { contentType: "application/json", upsert: true });
-
-      if (uploadError) {
-        await writeAuditLog({ actorId: userId, action: "user.export", metadata: { fallback: true } });
-        return { payload, fileName, signedUrl: null, fallback: true };
-      }
-
-      const { data: signed, error: signedError } = await supabaseAdmin.storage
-        .from("user-exports")
-        .createSignedUrl(path, 60 * 15);
-
-      // Never fail the copy on Storage 429/errors — the metadata payload is already in-hand.
-      if (signedError || !signed?.signedUrl) {
-        await writeAuditLog({
-          actorId: userId,
-          action: "user.export",
-          metadata: { fallback: true, signedUrlError: signedError?.message ?? true }
-        });
-        return { payload, fileName, signedUrl: null, fallback: true };
-      }
-
-      await writeAuditLog({ actorId: userId, action: "user.export" });
-      return { payload, fileName, signedUrl: signed.signedUrl, fallback: false };
-    } catch (caught) {
-      await writeAuditLog({
-        actorId: userId,
-        action: "user.export",
-        metadata: {
-          fallback: true,
-          storageError: caught instanceof Error ? caught.message : true
-        }
-      });
-      return { payload, fileName, signedUrl: null, fallback: true };
-    }
+    // Metadata is returned inline. Do not wait on Storage — a hung upload left Take a copy spinning.
+    void writeAuditLog({ actorId: userId, action: "user.export" });
+    return { payload, fileName };
   }
 
   /**

@@ -1,8 +1,13 @@
 import {
-  downloadBlobAsFile,
-  safeExportFileName,
+  USER_EXPORT_BUSY_TIMEOUT_MS,
+  USER_EXPORT_DOWNLOAD_PATH,
   USER_EXPORT_DOWNLOAD_TYPE,
-  userExportBlob
+  beginSameOriginExportDownload,
+  downloadBlobAsFile,
+  parseExportRouteError,
+  safeExportFileName,
+  userExportBlob,
+  userExportDownloadUrl
 } from "./downloadFile";
 import { serializeUserExport } from "./youView";
 
@@ -23,6 +28,82 @@ describe("user export download", () => {
     expect(blob.size).toBe(serializeUserExport({ journals: [] }).length);
   });
 
+  it("builds a cache-busted same-origin export URL", () => {
+    expect(userExportDownloadUrl(1_700_000_000_000)).toBe(`${USER_EXPORT_DOWNLOAD_PATH}?ts=1700000000000`);
+  });
+
+  it("reads JSON errors from the export route and ignores attachments", () => {
+    expect(parseExportRouteError('{"success":false,"error":"You are not signed in."}')).toBe(
+      "You are not signed in."
+    );
+    expect(parseExportRouteError('{"exportedAt":"2026-09-13T00:00:00.000Z"}')).toBeNull();
+    expect(parseExportRouteError("not json")).toBeNull();
+  });
+
+  it("ends the export busy state on a short timer so the button cannot stay stuck", () => {
+    expect(USER_EXPORT_BUSY_TIMEOUT_MS).toBeLessThanOrEqual(4_000);
+  });
+
+  it("starts a user-gesture iframe download before any network await", () => {
+    const clicks: string[] = [];
+    const loads: number[] = [];
+    const fakeFrame = {
+      name: "",
+      tabIndex: 0,
+      style: { position: "", width: "", height: "", border: "" },
+      addEventListener(type: string, handler: () => void) {
+        if (type === "load") {
+          loads.push(1);
+          handler();
+        }
+      },
+      setAttribute() {
+        return undefined;
+      }
+    };
+    const fakeLink = {
+      href: "",
+      download: "",
+      target: "",
+      rel: "",
+      type: "",
+      style: { display: "" },
+      click() {
+        clicks.push("click");
+      }
+    };
+    const appended: unknown[] = [];
+    const fakeDocument = {
+      createElement(tag: string) {
+        if (tag === "iframe") {
+          return fakeFrame;
+        }
+        expect(tag).toBe("a");
+        return fakeLink;
+      },
+      body: {
+        appendChild(node: unknown) {
+          appended.push(node);
+          return node;
+        }
+      }
+    };
+
+    const onLoad = jest.fn();
+    const result = beginSameOriginExportDownload(fakeDocument as unknown as Document, onLoad);
+
+    expect(result.frame).toBe(fakeFrame);
+    expect(result.link).toBe(fakeLink);
+    expect(fakeLink.href).toContain(USER_EXPORT_DOWNLOAD_PATH);
+    expect(fakeLink.target).toBe(fakeFrame.name);
+    expect(fakeLink.download).toBe("");
+    expect(fakeLink.type).toBe(USER_EXPORT_DOWNLOAD_TYPE);
+    expect(appended).toEqual([fakeFrame, fakeLink]);
+    expect(clicks).toEqual(["click"]);
+    expect(loads).toEqual([1]);
+    expect(onLoad).toHaveBeenCalledWith(fakeFrame);
+  });
+
   it("clicks a hidden attachment link and does not remove it immediately", () => {
     const clicks: string[] = [];
     const removed: string[] = [];
@@ -34,6 +115,9 @@ describe("user export download", () => {
       rel: "",
       type: "",
       style: { display: "" },
+      click() {
+        clicks.push("click");
+      },
       dispatchEvent(event: { type: string }) {
         clicks.push(event.type);
         return true;
@@ -68,10 +152,6 @@ describe("user export download", () => {
 
     const fakeWindow = {
       navigator: {},
-      requestAnimationFrame: (fn: () => void) => {
-        fn();
-        return 1;
-      },
       setTimeout: (fn: () => void, ms: number) => {
         timeouts.push(ms);
         void fn;
@@ -85,22 +165,6 @@ describe("user export download", () => {
       value: {
         createObjectURL: () => "blob:export-test",
         revokeObjectURL: () => undefined
-      },
-      configurable: true
-    });
-    Object.defineProperty(globalThis, "MouseEvent", {
-      value: class {
-        type: string;
-        constructor(type: string) {
-          this.type = type;
-        }
-      },
-      configurable: true
-    });
-    Object.defineProperty(globalThis, "requestAnimationFrame", {
-      value: (fn: () => void) => {
-        fn();
-        return 1;
       },
       configurable: true
     });

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useRef, useState, type ReactNode } from "react";
-import axios from "axios";
 import { Download, LogOut } from "lucide-react";
 import { FadeReveal } from "@/components/motion/FadeReveal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,7 +14,11 @@ import { useProfile } from "@/hooks/useProfile";
 import type { MemoryCategory } from "@/hooks/useMemory";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { downloadUserExportFile } from "@/lib/downloadFile";
+import {
+  USER_EXPORT_BUSY_TIMEOUT_MS,
+  beginSameOriginExportDownload,
+  parseExportRouteError
+} from "@/lib/downloadFile";
 import {
   ACCOUNT_DELETE_CONFIRMATION,
   MEMORY_CATEGORY_COPY,
@@ -24,31 +27,6 @@ import {
   youMonogram
 } from "@/lib/youView";
 import { useAuthStore } from "@/stores/authStore";
-
-type ApiEnvelope<T> = {
-  success: boolean;
-  data: T;
-};
-
-type ExportResponse = {
-  payload?: unknown;
-  fileName?: string;
-  signedUrl?: string | null;
-  fallback?: boolean;
-};
-
-function describeApiError(caught: unknown, fallback: string): string {
-  if (axios.isAxiosError(caught)) {
-    const body = caught.response?.data as { error?: unknown } | undefined;
-    if (typeof body?.error === "string" && body.error.trim()) {
-      return body.error;
-    }
-  }
-  if (caught instanceof Error && caught.message.trim()) {
-    return caught.message;
-  }
-  return fallback;
-}
 
 const fieldClass =
   "mt-2 h-11 w-full rounded-xl border border-border/70 bg-background/50 px-3 text-sm text-foreground outline-none placeholder:text-ink-faint focus:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/25";
@@ -147,30 +125,39 @@ export function YouPage() {
     }
   }
 
-  async function exportData() {
+  function exportData() {
     if (exportInFlight.current) {
       return;
     }
     exportInFlight.current = true;
     setNotice(null);
     setExportBusy(true);
-    try {
-      const response = await api.post<ApiEnvelope<ExportResponse>>("/user/export");
-      const result = response.data.data;
-      if (!result?.payload) {
-        throw new Error("Unable to export your data.");
+
+    const { frame, link } = beginSameOriginExportDownload(document, (loaded) => {
+      try {
+        const error = parseExportRouteError(loaded.contentDocument?.body?.innerText ?? "");
+        if (error) {
+          exportInFlight.current = false;
+          setExportBusy(false);
+          setNotice({ tone: "error", text: error });
+        }
+      } catch {
+        // Same-origin read can fail if the browser treated the response as a download.
       }
-      downloadUserExportFile(result.fileName, result.payload);
-      setNotice({ tone: "ok", text: "Your data copy is downloading." });
-    } catch (caught) {
-      setNotice({
-        tone: "error",
-        text: describeApiError(caught, "Unable to export your data.")
-      });
-    } finally {
+    });
+
+    window.setTimeout(() => {
       exportInFlight.current = false;
       setExportBusy(false);
-    }
+      setNotice((current) =>
+        current?.tone === "error" ? current : { tone: "ok", text: "Your copy is in Downloads." }
+      );
+    }, USER_EXPORT_BUSY_TIMEOUT_MS);
+
+    window.setTimeout(() => {
+      frame.remove();
+      link.remove();
+    }, 30_000);
   }
 
   async function logout() {
@@ -364,7 +351,7 @@ export function YouPage() {
           description="Download a metadata copy of your journals, memories, and chats. Encrypted page bodies are not included yet."
         >
           <div className="flex flex-col items-start gap-3">
-            <button type="button" onClick={() => void exportData()} disabled={exportBusy} className={ghostButtonClass}>
+            <button type="button" onClick={exportData} disabled={exportBusy} className={ghostButtonClass}>
               <Download className="h-4 w-4" aria-hidden />
               {exportBusy ? "Preparing copy…" : "Export data"}
             </button>
