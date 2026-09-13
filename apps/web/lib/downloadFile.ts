@@ -1,17 +1,11 @@
-import { serializeUserExport, userExportFileName } from "./youView";
+import { serializeUserExport, safeExportFileName, userExportFileName } from "./youView";
+
+export { safeExportFileName };
 
 export const USER_EXPORT_DOWNLOAD_TYPE = "application/octet-stream";
 export const USER_EXPORT_DOWNLOAD_PATH = "/api/user-export";
-/** Clear the Export button promptly; iframe onload can still replace this with an error. */
+/** Clear the Export button promptly after the save is triggered. */
 export const USER_EXPORT_BUSY_TIMEOUT_MS = 3_000;
-
-export function safeExportFileName(fileName: string | null | undefined, now: Date = new Date()): string {
-  const trimmed = fileName?.trim() ?? "";
-  if (/^lumen-export-\d{4}-\d{2}-\d{2}\.json$/.test(trimmed)) {
-    return trimmed;
-  }
-  return userExportFileName(undefined, now);
-}
 
 export function userExportBlob(payload: unknown): Blob {
   return new Blob([serializeUserExport(payload)], { type: USER_EXPORT_DOWNLOAD_TYPE });
@@ -41,42 +35,21 @@ type SaveBlobNavigator = Navigator & {
   msSaveOrOpenBlob?: (blob: Blob, fileName: string) => boolean;
 };
 
-export type SameOriginExportDownload = {
-  frame: HTMLIFrameElement;
-  link: HTMLAnchorElement;
-};
-
 /**
- * Same-origin attachment navigation. Must run inside the click handler (no await
- * beforehand) so the browser treats it as a user-initiated download.
+ * Same-origin attachment click. Must run inside the click handler (no await
+ * beforehand). Do not target a hidden iframe — on http://localhost Chrome
+ * swallows Content-Disposition attachments instead of writing Downloads.
  */
-export function beginSameOriginExportDownload(
-  doc: Document = document,
-  onLoad?: (frame: HTMLIFrameElement) => void
-): SameOriginExportDownload {
-  const frameName = `lumen-export-${Date.now()}`;
-  const frame = doc.createElement("iframe");
-  frame.name = frameName;
-  frame.setAttribute("aria-hidden", "true");
-  frame.tabIndex = -1;
-  frame.style.position = "fixed";
-  frame.style.width = "0";
-  frame.style.height = "0";
-  frame.style.border = "0";
-  if (onLoad) {
-    frame.addEventListener("load", () => onLoad(frame));
-  }
-  doc.body.appendChild(frame);
-
+export function beginSameOriginExportDownload(doc: Document = document): HTMLAnchorElement {
   const link = doc.createElement("a");
   link.href = userExportDownloadUrl();
-  link.target = frameName;
+  link.download = userExportFileName();
+  link.rel = "noopener";
   link.type = USER_EXPORT_DOWNLOAD_TYPE;
   link.style.display = "none";
   doc.body.appendChild(link);
   link.click();
-
-  return { frame, link };
+  return link;
 }
 
 /**

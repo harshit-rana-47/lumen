@@ -14,11 +14,7 @@ import { useProfile } from "@/hooks/useProfile";
 import type { MemoryCategory } from "@/hooks/useMemory";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import {
-  USER_EXPORT_BUSY_TIMEOUT_MS,
-  beginSameOriginExportDownload,
-  parseExportRouteError
-} from "@/lib/downloadFile";
+import { USER_EXPORT_BUSY_TIMEOUT_MS, beginSameOriginExportDownload } from "@/lib/downloadFile";
 import {
   ACCOUNT_DELETE_CONFIRMATION,
   MEMORY_CATEGORY_COPY,
@@ -133,31 +129,14 @@ export function YouPage() {
     setNotice(null);
     setExportBusy(true);
 
-    const { frame, link } = beginSameOriginExportDownload(document, (loaded) => {
-      try {
-        const error = parseExportRouteError(loaded.contentDocument?.body?.innerText ?? "");
-        if (error) {
-          exportInFlight.current = false;
-          setExportBusy(false);
-          setNotice({ tone: "error", text: error });
-        }
-      } catch {
-        // Same-origin read can fail if the browser treated the response as a download.
-      }
-    });
+    const link = beginSameOriginExportDownload();
 
     window.setTimeout(() => {
+      link.remove();
       exportInFlight.current = false;
       setExportBusy(false);
-      setNotice((current) =>
-        current?.tone === "error" ? current : { tone: "ok", text: "Your copy is in Downloads." }
-      );
+      setNotice({ tone: "ok", text: "Your copy is in Downloads." });
     }, USER_EXPORT_BUSY_TIMEOUT_MS);
-
-    window.setTimeout(() => {
-      frame.remove();
-      link.remove();
-    }, 30_000);
   }
 
   async function logout() {

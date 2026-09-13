@@ -50,6 +50,14 @@ export function userExportFileName(exportedAt?: string, now: Date = new Date()):
   return `lumen-export-${isoDay}.json`;
 }
 
+export function safeExportFileName(fileName: string | null | undefined, now: Date = new Date()): string {
+  const trimmed = fileName?.trim() ?? "";
+  if (/^lumen-export-\d{4}-\d{2}-\d{2}\.json$/.test(trimmed)) {
+    return trimmed;
+  }
+  return userExportFileName(undefined, now);
+}
+
 export function serializeUserExport(payload: unknown): string {
   return `${JSON.stringify(payload, null, 2)}\n`;
 }

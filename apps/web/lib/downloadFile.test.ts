@@ -44,23 +44,8 @@ describe("user export download", () => {
     expect(USER_EXPORT_BUSY_TIMEOUT_MS).toBeLessThanOrEqual(4_000);
   });
 
-  it("starts a user-gesture iframe download before any network await", () => {
+  it("clicks a download link in the current window instead of a hidden iframe", () => {
     const clicks: string[] = [];
-    const loads: number[] = [];
-    const fakeFrame = {
-      name: "",
-      tabIndex: 0,
-      style: { position: "", width: "", height: "", border: "" },
-      addEventListener(type: string, handler: () => void) {
-        if (type === "load") {
-          loads.push(1);
-          handler();
-        }
-      },
-      setAttribute() {
-        return undefined;
-      }
-    };
     const fakeLink = {
       href: "",
       download: "",
@@ -75,9 +60,6 @@ describe("user export download", () => {
     const appended: unknown[] = [];
     const fakeDocument = {
       createElement(tag: string) {
-        if (tag === "iframe") {
-          return fakeFrame;
-        }
         expect(tag).toBe("a");
         return fakeLink;
       },
@@ -89,19 +71,15 @@ describe("user export download", () => {
       }
     };
 
-    const onLoad = jest.fn();
-    const result = beginSameOriginExportDownload(fakeDocument as unknown as Document, onLoad);
+    const result = beginSameOriginExportDownload(fakeDocument as unknown as Document);
 
-    expect(result.frame).toBe(fakeFrame);
-    expect(result.link).toBe(fakeLink);
+    expect(result).toBe(fakeLink);
     expect(fakeLink.href).toContain(USER_EXPORT_DOWNLOAD_PATH);
-    expect(fakeLink.target).toBe(fakeFrame.name);
-    expect(fakeLink.download).toBe("");
+    expect(fakeLink.download).toMatch(/^lumen-export-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(fakeLink.target).toBe("");
     expect(fakeLink.type).toBe(USER_EXPORT_DOWNLOAD_TYPE);
-    expect(appended).toEqual([fakeFrame, fakeLink]);
+    expect(appended).toEqual([fakeLink]);
     expect(clicks).toEqual(["click"]);
-    expect(loads).toEqual([1]);
-    expect(onLoad).toHaveBeenCalledWith(fakeFrame);
   });
 
   it("clicks a hidden attachment link and does not remove it immediately", () => {
@@ -117,10 +95,6 @@ describe("user export download", () => {
       style: { display: "" },
       click() {
         clicks.push("click");
-      },
-      dispatchEvent(event: { type: string }) {
-        clicks.push(event.type);
-        return true;
       },
       remove() {
         removed.push("removed");
@@ -145,8 +119,6 @@ describe("user export download", () => {
       document: globalThis.document,
       navigator: globalThis.navigator,
       URL: globalThis.URL,
-      MouseEvent: globalThis.MouseEvent,
-      requestAnimationFrame: globalThis.requestAnimationFrame,
       setTimeout: globalThis.setTimeout
     };
 
@@ -190,11 +162,6 @@ describe("user export download", () => {
       Object.defineProperty(globalThis, "document", { value: previous.document, configurable: true });
       Object.defineProperty(globalThis, "navigator", { value: previous.navigator, configurable: true });
       Object.defineProperty(globalThis, "URL", { value: previous.URL, configurable: true });
-      Object.defineProperty(globalThis, "MouseEvent", { value: previous.MouseEvent, configurable: true });
-      Object.defineProperty(globalThis, "requestAnimationFrame", {
-        value: previous.requestAnimationFrame,
-        configurable: true
-      });
       Object.defineProperty(globalThis, "setTimeout", { value: previous.setTimeout, configurable: true });
     }
   });

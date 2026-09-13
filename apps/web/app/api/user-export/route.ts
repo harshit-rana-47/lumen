@@ -1,14 +1,15 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { safeExportFileName } from "@/lib/downloadFile";
-import { serializeUserExport } from "@/lib/youView";
+import { resolveExportApiBaseUrl } from "@/lib/exportApiBase";
+import { safeExportFileName, serializeUserExport } from "@/lib/youView";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 20;
+/** Hobby plan rejects values above 10s and fails the Vercel deployment. */
+export const maxDuration = 10;
 
 const ACCESS_COOKIE = "lumen-access-token";
-const EXPORT_TIMEOUT_MS = 12_000;
+const EXPORT_TIMEOUT_MS = 8_000;
 
 type ExportEnvelope = {
   success?: boolean;
@@ -19,21 +20,13 @@ type ExportEnvelope = {
   };
 };
 
-function apiBaseUrl(): string | null {
-  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!raw) {
-    return null;
-  }
-  return raw.replace(/\/$/, "");
-}
-
 export async function GET() {
   const token = decodeURIComponent((await cookies()).get(ACCESS_COOKIE)?.value ?? "").trim();
   if (!token || token === "dev-preview") {
     return NextResponse.json({ success: false, error: "You are not signed in." }, { status: 401 });
   }
 
-  const apiBase = apiBaseUrl();
+  const apiBase = resolveExportApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
   if (!apiBase) {
     return NextResponse.json({ success: false, error: "Unable to export your data." }, { status: 500 });
   }

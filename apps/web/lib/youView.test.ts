@@ -1,4 +1,4 @@
-import { userExportFileName, serializeUserExport, youDisplayName, youJourneyLine, youMonogram } from "./youView";
+import { userExportFileName, safeExportFileName, serializeUserExport, youDisplayName, youJourneyLine, youMonogram } from "./youView";
 import type { ActivitySummary } from "./activity";
 
 function summary(overrides: Partial<ActivitySummary> = {}): ActivitySummary {
@@ -35,6 +35,10 @@ describe("user data export copy", () => {
     expect(userExportFileName("2026-09-13T12:00:00.000Z")).toBe("lumen-export-2026-09-13.json");
     expect(userExportFileName(undefined, new Date("2026-01-02T00:00:00.000Z"))).toBe(
       "lumen-export-2026-01-02.json"
+    );
+    expect(safeExportFileName("lumen-export-2026-09-13.json")).toBe("lumen-export-2026-09-13.json");
+    expect(safeExportFileName("../secret.json", new Date("2026-09-13T00:00:00.000Z"))).toBe(
+      "lumen-export-2026-09-13.json"
     );
   });
 
