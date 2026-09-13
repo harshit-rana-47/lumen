@@ -5,7 +5,7 @@
   "description": "AI-powered journaling, memory, and mental wellness platform.",
   "packageManager": "npm@10.8.2",
   "engines": {
-    "node": ">=20 <23"
+    "node": ">=20 <25"
   },
   "workspaces": [
     "apps/*",
@@ -21,6 +21,11 @@
     "typecheck": "turbo typecheck",
     "audit:security": "npm audit",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\""
+  },
+  "dependencies": {
+    "next": "^16.2.12",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "prettier": "^3.3.3",

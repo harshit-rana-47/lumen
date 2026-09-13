@@ -172,14 +172,14 @@ Vercel should host **`apps/web` only**. The Express API (`apps/api`), pg-boss wo
 
 | Setting | Value |
 | --- | --- |
-| **Root Directory** | `apps/web` (include files outside the root so `packages/` is available) |
+| **Root Directory** | Leave as the repository root **or** set `apps/web` (include files outside the root so `packages/` is available) |
 | **Framework** | Next.js |
-| **Node.js** | `20.x` |
-| **Install command** | from `apps/web/vercel.json` (workspace-filtered `npm ci`) |
-| **Build command** | `cd ../.. && npx turbo run build --filter=@lumen/web` |
+| **Node.js** | `20.x` or `24.x` |
+| **Install command** | from `vercel.json` (workspace-filtered `npm ci`) |
+| **Build command** | `npx turbo run build --filter=@lumen/web` |
 | **Output directory** | leave default (`.next`) |
 
-If Root Directory is left as the repository root, use the root `vercel.json` install/build commands. Do **not** set Output Directory to `apps/web/.next` while using the Next.js preset from the repo root — Vercel then looks for `next.config` and `.next` in the wrong place.
+The workspace root `package.json` lists `next` so Vercel can detect the framework when Root Directory is the repo root. The Next app still lives in `apps/web`. Do **not** set Output Directory to `apps/web/.next` while using the Next.js preset from the repo root — Vercel then looks for `next.config` and `.next` in the wrong place.
 
 Do not run root `npm run build` / `turbo build` on Vercel. That compiles the API as well and `npm ci` without workspace filters installs `@xenova/transformers` (ONNX/sharp native binaries), which is what makes the install look stuck.
 
